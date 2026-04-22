@@ -62,7 +62,7 @@ flowchart TB
     WORKER -->|TTS synthesis| SPE
     WORKER -->|Upload MP3| BLOB
     WORKER -->|Update status| TABLE
-    CLI -->|GET /jobs/{id}| API
+    CLI -->|GET /jobs/id| API
     TEAMS -.->|Proactive notification| TEAMS
     API -->|Read status| TABLE
     API -->|Generate SAS URL| BLOB
@@ -85,10 +85,10 @@ sequenceDiagram
     participant Speech as Azure Speech
     participant Blob as Blob Storage
 
-    Client->>API: POST /generate {url, style}
-    API->>Table: Create job {id, status: "queued"}
-    API->>Queue: Enqueue {job_id, url, style}
-    API-->>Client: 202 Accepted {job_id, status_url}
+    Client->>API: POST /generate (url, style)
+    API->>Table: Create job (id, status: queued)
+    API->>Queue: Enqueue (job_id, url, style)
+    API-->>Client: 202 Accepted (job_id, status_url)
 
     Note over Client: Client polls or waits<br/>for notification
 
@@ -103,9 +103,9 @@ sequenceDiagram
     Worker->>Table: Update status: "completed" + blob_url
 
     alt CLI Client
-        Client->>API: GET /jobs/{id}
+        Client->>API: GET /jobs/id
         API->>Table: Read job status
-        API-->>Client: {status: "completed", download_url}
+        API-->>Client: status: completed, download_url
     else Teams Bot
         Worker->>API: Notify completion
         API->>Client: Proactive message with audio card
