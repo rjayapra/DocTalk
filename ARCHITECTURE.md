@@ -402,53 +402,73 @@ Where `uniqueHash6 = take(uniqueString(subscription().id, environmentName, locat
 
 ---
 
-## 6. Security Design
+## 11. Security Design
 
-| Principle | Implementation |
-|-----------|----------------|
-| **No secrets in code** | `DefaultAzureCredential` for all Azure service access |
-| **RBAC authorization** | Key Vault uses RBAC mode (not access policies) |
-| **TLS 1.2+** | Enforced on Storage account |
-| **No public blob access** | `allowBlobPublicAccess: false` on Storage |
-| **Soft delete** | Enabled on Key Vault (7-day retention) |
-| **Diagnostic logging** | All resources send logs to Log Analytics |
-| **Least privilege** | CLI runs under user's Azure identity — no service principal needed for local dev |
-
----
-
-## 7. Cost Estimate (POC — Monthly)
-
-| Resource | SKU | Estimated Cost | Assumptions |
-|----------|-----|----------------|-------------|
-| Azure OpenAI (GPT-5.1) | S0 Standard | ~$5–15 | ~50 podcast generations/month, ~2K tokens each |
-| Azure Speech | S0 | ~$2–5 | ~50 podcasts × 5 min avg = 250 min neural TTS |
-| Blob Storage | Standard_LRS | <$1 | ~50 MP3 files × 5 MB = 250 MB |
-| Key Vault | Standard | <$1 | Minimal secret operations |
-| Log Analytics | PerGB2018 | <$1 | Low ingestion for POC |
-| **Total** | | **~$10–25/month** | |
+| Principle | Phase 1 | Phase 2 |
+|-----------|---------|---------|
+| **No secrets in code** | `DefaultAzureCredential` | Managed Identity on Container Apps |
+| **RBAC authorization** | Key Vault RBAC mode | + AcrPull, Storage Queue Data roles |
+| **TLS 1.2+** | Storage account | + Container Apps ingress HTTPS-only |
+| **No public blob access** | `allowBlobPublicAccess: false` | Time-limited SAS tokens for downloads |
+| **Soft delete** | Key Vault (7-day) | Unchanged |
+| **Diagnostic logging** | All resources → Log Analytics | + Container Apps system/console logs |
+| **Network isolation** | User's local machine | Container Apps VNet (optional) |
+| **Bot auth** | N/A | Entra ID app registration + Bot Framework auth |
 
 ---
 
-## 8. Limitations & Constraints
+## 12. Cost Estimate (Monthly)
+
+### Phase 1 — CLI Only (Current)
+
+| Resource | Est. Cost | Assumptions |
+|----------|-----------|-------------|
+| Azure OpenAI (GPT-5.1) | ~$5–15 | ~50 generations, ~2K tokens each |
+| Azure Speech (Neural TTS) | ~$2–5 | ~250 min neural TTS |
+| Blob Storage | <$1 | ~250 MB stored |
+| Key Vault + Log Analytics | <$2 | Minimal usage |
+| **Phase 1 Total** | **~$10–25** | |
+
+### Phase 2 — API + Teams Bot
+
+| Resource | Est. Cost | Assumptions |
+|----------|-----------|-------------|
+| Container Apps (API) | ~$2–5 | Scale-to-zero, ~100 requests/mo |
+| Container Apps (Worker) | ~$1–3 | Scale-to-zero, ~50 jobs/mo |
+| Container Registry (Basic) | ~$5 | Image storage |
+| Azure Bot Service | Free (F0) | Teams channel |
+| Storage Queues + Tables | <$1 | Job management |
+| **Phase 2 Additional** | **~$8–13** | |
+| **Combined Total** | **~$18–38** | |
+
+---
+
+## 13. Limitations & Constraints
 
 | Constraint | Detail | Mitigation |
 |------------|--------|------------|
-| Content truncation | Scraper caps at 12K chars | Summarization handles longer pages; could add pagination |
-| SSML voice limit | Azure Speech max 50 `<voice>` elements | Auto-chunking with MP3 concatenation |
-| Public pages only | Some docs require authentication | User sees error; could add login support |
-| English only | TTS voices are English | Could add multilingual voice support |
-| No caching | Regenerates from scratch every time | Could add script/audio caching layer |
-| CLI only | No web UI yet | Phase 2 roadmap item |
+| Content truncation | Scraper caps at 12K chars | Summarization; could add pagination |
+| SSML voice limit | Max 50 `<voice>` elements | Auto-chunking with MP3 concatenation |
+| Public pages only | Some docs require auth | Error message; could add login support |
+| English only | TTS voices are English | Multilingual voice support (Phase 3) |
+| No caching | Regenerates every time | Blob-based caching by URL hash (Phase 2) |
+| Queue visibility timeout | Long TTS jobs may exceed 30s default | Set 5-min visibility timeout |
+| Cold start | Container Apps scale-to-zero | First request ~5–10s latency; acceptable for small team |
 
 ---
 
-## 9. Technology Choices & Trade-offs
+## 14. Technology Choices & Trade-offs
 
 | Decision | Choice | Alternative | Rationale |
 |----------|--------|-------------|-----------|
-| LLM | Azure OpenAI GPT-5.1 | GPT-4.1, Claude | Best Azure integration, managed service, passwordless auth |
-| TTS | Azure Speech Neural | ElevenLabs, Google TTS | Native Azure, SSML multi-voice, chat style |
-| Scraping | BeautifulSoup | Playwright, Selenium | Lightweight, no browser needed, sufficient for static docs |
-| CLI framework | Click | argparse, Typer | Clean decorator syntax, auto-help, parameter validation |
-| IaC | Bicep + AZD | Terraform, ARM | Azure-native, simplified with `azd provision`, strong typing |
-| Auth | DefaultAzureCredential | API keys | Zero-secret local dev, production-ready with Managed Identity |
+| API framework | FastAPI | Flask, Django | Async-native, auto OpenAPI docs, lightweight |
+| Compute | Container Apps | Functions, App Service | Scale-to-zero, queue triggers, no VM management |
+| Job queue | Storage Queue | Service Bus | Simpler, cheaper, sufficient for small team scale |
+| Job state | Table Storage | Cosmos DB, SQL | Cheap, serverless, key-value is enough |
+| Bot framework | Bot Framework SDK | Power Virtual Agents | Full control, free tier, Python SDK |
+| Container registry | ACR Basic | Docker Hub | Azure-native, private, Managed Identity pull |
+| LLM | Azure OpenAI GPT-5.1 | GPT-4.1, Claude | Best Azure integration, managed, passwordless |
+| TTS | Azure Speech Neural | ElevenLabs | Native Azure, SSML multi-voice, chat style |
+| Scraping | BeautifulSoup | Playwright | Lightweight, no browser needed |
+| IaC | Bicep + AZD | Terraform | Azure-native, simplified provisioning |
+| Auth | DefaultAzureCredential | API keys | Zero-secret dev, Managed Identity in prod |

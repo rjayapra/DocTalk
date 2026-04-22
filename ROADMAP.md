@@ -1,37 +1,52 @@
 # Roadmap & Next Steps
 
-> DocTalk — future enhancement ideas organized by phase.
+> DocTalk — evolution from CLI tool to multi-channel podcast platform.
 
 ---
 
-## Phase 1 — Polish & Harden (Current → Next)
+## Phase 1 — CLI Tool ✅ (Completed)
+
+| Item | Status | Description |
+|------|--------|-------------|
+| 🔍 Docs scraper | ✅ Done | BeautifulSoup extraction from Azure docs URLs |
+| 🤖 Script generation | ✅ Done | GPT-5.1 single-narrator + two-host conversation |
+| 🔊 Speech synthesis | ✅ Done | Azure Neural TTS with SSML chunking |
+| 🖥️ CLI interface | ✅ Done | Click-based `generate` and `preview` commands |
+| ☁️ Azure infra | ✅ Done | Bicep + AZD provisioning (6 resources) |
+| 📝 Documentation | ✅ Done | README, ARCHITECTURE, ROADMAP |
+
+---
+
+## Phase 2 — API Backend + Teams Bot (Next)
 
 | Item | Description | Effort |
 |------|-------------|--------|
-| 🧪 **Unit tests** | Add pytest tests for scraper, script generator, and synthesizer (mock Azure calls) | Medium |
-| 📦 **Blob upload** | Auto-upload generated MP3s to Azure Blob Storage after synthesis | Small |
-| 🔄 **Caching layer** | Cache scraped content + generated scripts to avoid redundant API calls | Medium |
-| 🏷️ **ID3 tags** | Add podcast metadata (title, description, date) to MP3 files via `mutagen` | Small |
-| ⚙️ **Config validation** | Better error messages when `.env` is missing or partially configured | Small |
-| 📊 **Telemetry** | Send generation events to App Insights (duration, token usage, errors) | Medium |
-| 🔐 **Key Vault integration** | Store and retrieve Speech key from Key Vault (currently using env vars) | Small |
+| 🌐 **FastAPI backend** | REST API (`POST /generate`, `GET /jobs/{id}`) hosted on Azure Container Apps | Medium |
+| ⚙️ **Background worker** | Queue-triggered container that runs the scrape → script → TTS pipeline | Medium |
+| 📬 **Storage Queue + Table** | Job queue for async processing + Table Storage for job status tracking | Small |
+| 🐳 **Containerize** | Dockerfile for API + Worker, push to Azure Container Registry | Small |
+| 💬 **Teams Bot** | Bot Framework bot — paste URL, get podcast via Adaptive Card | Medium |
+| 🔄 **CLI update** | CLI calls API instead of running locally; `--local` flag for offline mode | Small |
+| 🏗️ **Bicep modules** | New modules: `containerapp.bicep`, `bot.bicep`, `registry.bicep` | Medium |
+| 🧪 **Unit tests** | pytest for scraper, script generator, synthesizer, API endpoints | Medium |
+
+### Architecture Summary
+
+```
+CLI / Teams Bot  →  FastAPI (Container Apps)  →  Storage Queue
+                                                       ↓
+                                                  Worker (Container Apps)
+                                                       ↓
+                                              OpenAI → Speech → Blob
+                                                       ↓
+                                              Notification → Client
+```
+
+See [ARCHITECTURE.md](./ARCHITECTURE.md) for full diagrams and API contracts.
 
 ---
 
-## Phase 2 — Web UI & Multi-Format
-
-| Item | Description | Effort |
-|------|-------------|--------|
-| 🌐 **Web interface** | Streamlit or Flask web UI — paste URL, choose style, download MP3 | Medium |
-| 🐳 **Containerize** | Dockerfile + deploy to Azure Container Apps for hosted access | Medium |
-| 📋 **Batch processing** | Accept a list of URLs (file or CLI arg), generate a podcast playlist | Small |
-| 📑 **RSS feed generation** | Generate a podcast RSS feed from Blob Storage contents | Medium |
-| 🔗 **Share links** | Generate SAS URLs for sharing podcasts without authentication | Small |
-| 📊 **Progress bar** | Real-time progress indicators for long-running synthesis | Small |
-
----
-
-## Phase 3 — Intelligence & Personalization
+## Phase 3 — Intelligence & Reach
 
 | Item | Description | Effort |
 |------|-------------|--------|
@@ -42,6 +57,9 @@
 | 🧠 **Smart summarization** | Use RAG to combine multiple related docs into a single episode | Large |
 | 📚 **Learning paths** | Auto-generate a podcast series from an Azure Learning Path URL | Large |
 | 🎯 **Audience targeting** | Adjust content depth (beginner, intermediate, expert) | Medium |
+| 📋 **Batch processing** | Accept a list of URLs, generate a playlist | Small |
+| 📑 **RSS feed** | Podcast RSS feed from Blob Storage for standard podcast apps | Medium |
+| 🔗 **Share links** | SAS URLs for sharing podcasts without auth | Small |
 
 ---
 
@@ -49,13 +67,14 @@
 
 | Item | Description | Effort |
 |------|-------------|--------|
-| 👥 **Multi-tenant** | Auth (Entra ID) + per-user podcast libraries | Large |
-| ⚡ **Async processing** | Queue-based architecture (Service Bus) for scalable generation | Large |
-| 📈 **Usage analytics** | Dashboard showing popular topics, generation stats, user engagement | Medium |
-| 🔄 **Auto-refresh** | Monitor docs for updates, auto-regenerate affected podcasts | Large |
+| 👥 **Multi-tenant** | Entra ID auth + per-user podcast libraries | Large |
+| ⚡ **Service Bus upgrade** | Replace Storage Queue with Service Bus for dead-lettering, sessions | Medium |
+| 📈 **Usage analytics** | Dashboard showing popular topics, generation stats | Medium |
+| 🔄 **Auto-refresh** | Monitor docs for updates, regenerate affected podcasts | Large |
+| 📱 **Mobile companion** | React Native or PWA with offline playback | Large |
+| 🌐 **Web portal** | Full web UI for browsing, searching, and playing podcasts | Large |
+| 🗓️ **Scheduled digests** | Timer-triggered Function for daily/weekly podcast digests | Medium |
 | 🤝 **GitHub integration** | Generate podcast from PR descriptions or ADR files | Medium |
-| 📱 **Mobile app** | Companion app with offline download + playback | Large |
-| 🗓️ **Scheduled generation** | Timer-triggered Azure Function to generate daily/weekly digests | Medium |
 
 ---
 
