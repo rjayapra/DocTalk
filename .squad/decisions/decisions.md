@@ -1,7 +1,7 @@
 # Team Decisions Log
 
 > Canonical record of architectural and operational decisions made by the DocTalk team.
-> Merged and deduplicated by Scribe. Last updated: 2025-01-22.
+> Merged and deduplicated by Scribe. Last updated: 2026-04-24.
 
 ---
 
@@ -170,6 +170,81 @@ src/webapp/
 ```
 
 **Deployment:** Docker build copies `src/webapp/` into container; FastAPI mounts at runtime.
+
+---
+
+## 2026-04-24: Event Delegation for Dynamic Content with Complex Strings
+
+**By:** Mouse (Frontend Developer)
+
+**Status:** Implemented
+
+### Context
+
+The DocTalk webapp had two critical bugs:
+1. All podcast titles displayed generic "overview" names instead of custom titles
+2. Play buttons on recent podcast cards failed to work with Azure Blob Storage SAS URLs
+
+### Root Cause
+
+#### Title Bug
+- The webapp was deriving titles from URL paths (`new URL(job.url).pathname.split('/').pop()`)
+- The API returns a `title` field in job responses, but the frontend ignored it
+- Result: All Azure docs URLs ending in `/overview` showed as "overview"
+
+#### Playback Bug
+- Play buttons used inline onclick handlers: `onclick="playPodcast('${escapeHtml(url)}', ...)"`
+- `escapeHtml()` converted special characters for HTML safety (`&` → `&amp;`, `<` → `&lt;`)
+- Azure SAS URLs contain `&`, `?`, `=` as query parameters
+- Result: Escaped URLs like `https://...?sig=abc&amp;sp=r` broke playback completely
+
+### Decision
+
+#### 1. Title Handling
+- Created `getJobTitle(job)` helper function
+- Prioritizes `job.title` from API if present, falls back to URL-derived name
+- Applied consistently across `showPlayer()` and `createPodcastCard()`
+- Added optional "Podcast Name" form field that sends `title` to POST /generate
+
+#### 2. Event Delegation Pattern
+- **Replaced:** Inline `onclick` handlers with escaped strings
+- **With:** Event delegation using data attributes
+  ```javascript
+  // Button HTML
+  <button class="btn-play" data-audio-url="${escapeHtml(url)}" data-title="${escapeHtml(title)}">
+
+  // Delegated listener on container
+  recentList.addEventListener('click', (e) => {
+      const btn = e.target.closest('.btn-play');
+      if (btn) playPodcast(btn.dataset.audioUrl, btn.dataset.title);
+  });
+  ```
+- Data attributes store the raw unescaped values
+- HTML escaping only applies to rendered text content, not attribute values
+- Event delegation reduces memory footprint (one listener vs many)
+
+### Benefits
+
+1. **Security:** No XSS risk — escapeHtml still applied to visible text
+2. **Reliability:** SAS URLs with special chars work correctly
+3. **Maintainability:** Single listener instead of N inline handlers
+4. **Flexibility:** Easy to add more data attributes for future features
+5. **User Experience:** Custom podcast names + working playback buttons
+
+### Pattern for Team
+
+**ALWAYS use data attributes + event delegation when:**
+- Dynamic content contains complex strings (URLs, JSON, multiline text)
+- Strings contain special characters (`&`, `<`, `>`, `'`, `"`)
+- Content is generated server-side or from API responses
+- Security (XSS prevention) and reliability both matter
+
+**NEVER use inline onclick with escaped strings for URLs or structured data.**
+
+### Files Changed
+
+- `src/webapp/index.html` — Added "Podcast Name" optional input field
+- `src/webapp/app.js` — Implemented getJobTitle(), event delegation, updated generatePodcast()
 
 **Limitations & Future Work:**
 - No job history (future: localStorage)

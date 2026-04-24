@@ -43,3 +43,12 @@
 - **Audio player:** Appears prominently when podcast is ready, supports auto-play (with fallback)
 - **Mobile-first:** Responsive grid collapses to single column on mobile devices
 
+### 2025-01-24 — Bug Fixes: Podcast Titles & Playback
+- **Title display fix:** Implemented `getJobTitle(job)` helper that prioritizes `job.title` from API over URL-derived names
+- **Custom podcast names:** Added optional "Podcast Name" text input field to generation form; included in POST /generate body
+- **Play button fix (CRITICAL):** Replaced inline `onclick` handlers with event delegation using `data-audio-url` and `data-title` attributes
+  - Previous approach: `onclick="playPodcast('${escapeHtml(url)}', ...)"` corrupted SAS URLs (& → &amp; broke query params)
+  - New approach: Event delegation on `recentList` container reads raw data attributes, avoiding escaping issues
+  - Ensures Azure Blob Storage SAS URLs with `&`, `?`, `=` characters work correctly
+- **Pattern established:** Always use data attributes + event delegation for dynamic content with complex string values (URLs, JSON, etc.)
+

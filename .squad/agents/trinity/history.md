@@ -34,3 +34,11 @@
 - **Production note**: Added comment in module docstring about increasing ACA ingress timeout to 600s via `az containerapp ingress update --timeout 600`.
 - **Key insight**: SSE keep-alive is critical for long-running jobs behind proxies — even with proper ingress timeouts, the connection needs regular heartbeats to stay alive.
 
+### 2025-01-10 — Optional Title Field for User-Provided Podcast Names
+- **Purpose:** Enable webapp to pass user-provided podcast names instead of always auto-generating from URL.
+- **Changes made:**
+  - Added `title: str = ""` field to `GenerateRequest` model (line 41) — optional, defaults to empty string.
+  - Updated `generate()` endpoint (line 75) to pass `request.title` to `Job()` constructor: `Job(url=request.url, style=request.style, title=request.title)`.
+- **Integration notes:** The `Job` model already has a `title` field, and `_job_to_response` already maps it. Worker logic sets `title` during processing if empty, so user-provided titles take priority only if worker respects pre-set titles.
+- **UX impact:** Users can now provide custom podcast names at submission time rather than being stuck with auto-generated titles from URL metadata.
+
