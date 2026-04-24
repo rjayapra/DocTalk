@@ -13,7 +13,7 @@ A comprehensive 39-task UI build plan has been created spanning 3 phases. Tank h
 - `webApplicationInfo` references Entra app ID for OAuth — uses `${{ENTRA_APP_ID}}` placeholder syntax
 - Environment variables live in `env/.env.dev` with Teams Toolkit `${{VAR}}` interpolation syntax
 - Icon requirements: `color.png` = 192×192 full color, `outline.png` = 32×32 white-on-transparent
-- API URL: `https://ca-doctalk-api-mkffp6.wittyfield-14310482.eastus2.azurecontainerapps.io`
+- API URL: `https://ca-doctalk-api-m4ydxz.thankfulwave-bd3e8cef.eastus2.azurecontainerapps.io`
 
 ### Key File Paths
 - `teamsapp.yml` — main Teams Toolkit config
