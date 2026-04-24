@@ -7,15 +7,26 @@ services:
     project: .
     language: python
     image: ${AZURE_CONTAINER_REGISTRY_LOGIN_SERVER}/doctalk-api:${AZURE_ENV_NAME}
+    docker:
+      remoteBuild: true
   worker:
     host: containerapp
     project: .
     language: python
     image: ${AZURE_CONTAINER_REGISTRY_LOGIN_SERVER}/doctalk-worker:${AZURE_ENV_NAME}
+    docker:
+      remoteBuild: true
 hooks:
   postprovision:
     shell: pwsh
     run: |
+      Write-Host "Setting Entra ID Application ID URI..."
+      if ($env:ENTRA_APP_ID) {
+        az ad app update --id $env:ENTRA_APP_ID --identifier-uris "api://$env:ENTRA_APP_ID"
+        Write-Host "Application ID URI set to api://$env:ENTRA_APP_ID"
+      } else {
+        Write-Host "ENTRA_APP_ID not set — skipping Application ID URI configuration"
+      }
       Write-Host "Building images with az acr build (no local Docker needed)..."
       az acr build --registry $env:AZURE_CONTAINER_REGISTRY_NAME --image "doctalk-api:$env:AZURE_ENV_NAME" --file Dockerfile.api .
       az acr build --registry $env:AZURE_CONTAINER_REGISTRY_NAME --image "doctalk-worker:$env:AZURE_ENV_NAME" --file Dockerfile.worker .

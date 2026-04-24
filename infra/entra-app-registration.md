@@ -3,23 +3,32 @@
 > Runbook for registering the Entra ID application that enables OAuth 2.0 authentication
 > between Microsoft 365 Copilot (API plugin) and the DocTalk API.
 
-## Prerequisites
+## Automated Registration (Recommended)
 
-- Azure CLI (`az`) installed and authenticated (`az login`)
-- Permissions: **Application Administrator** or **Global Administrator** in your Entra ID tenant
-- The DocTalk API deployed and accessible via HTTPS
+As of the `azd up` integration, the Entra ID app registration is **automatically provisioned**
+during infrastructure deployment via the `infra/modules/entra-app.bicep` Bicep module using
+Microsoft Graph Bicep extensibility.
 
-## Configuration Summary
+Running `azd up` (or `azd provision`) will:
+1. Create the Entra ID app registration (`DocTalk API`)
+2. Configure single-tenant sign-in audience
+3. Set the Application ID URI (`api://<app-id>`)
+4. Add the `Podcasts.ReadWrite` OAuth2 scope (User type, enabled)
+5. Set `accessTokenAcceptedVersion` to 2
+6. Configure the Teams OAuth redirect URI
+7. Pass `ENTRA_APP_ID` and `ENTRA_TENANT_ID` as environment variables to the API container app
 
-| Setting                      | Value                                                          |
-| ---------------------------- | -------------------------------------------------------------- |
-| App type                     | API (server)                                                   |
-| Supported account types      | Single tenant (your org only)                                  |
-| API scope                    | `api://<APP_ID>/Podcasts.ReadWrite`                            |
-| Redirect URI                 | `https://teams.microsoft.com/api/platform/v1.0/oAuthRedirect` |
-| accessTokenAcceptedVersion   | 2 (v2.0 tokens)                                               |
+After provisioning, the values are available as AZD outputs:
+```bash
+azd env get-values | grep ENTRA_
+# ENTRA_APP_ID=<client-id>
+# ENTRA_TENANT_ID=<tenant-id>
+```
 
-## Option A: Automated Script
+## Fallback: Manual Script
+
+If the automated Bicep deployment fails (e.g., due to Microsoft Graph permissions issues),
+use the Azure CLI script as a fallback:
 
 ```bash
 # From the repo root:
@@ -40,7 +49,9 @@ export ENTRA_CLIENT_ID="<value from script>"
 export ENTRA_TENANT_ID="<value from script>"
 ```
 
-## Option B: Manual Steps (Azure Portal)
+## Fallback: Azure Portal (Manual)
+
+If neither the automated Bicep module nor the CLI script works, follow these manual steps:
 
 ### 1. Register the Application
 

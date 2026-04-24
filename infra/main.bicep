@@ -1,3 +1,5 @@
+extension microsoftGraphV1
+
 targetScope = 'subscription'
 
 @minLength(1)
@@ -114,6 +116,14 @@ module identity './modules/identity.bicep' = {
   }
 }
 
+module entraApp './modules/entra-app.bicep' = {
+  name: 'entraApp'
+  scope: rg
+  params: {
+    appDisplayName: 'DocTalk API'
+  }
+}
+
 module apiApp './modules/container-app-api.bicep' = {
   name: 'apiApp'
   scope: rg
@@ -133,6 +143,9 @@ module apiApp './modules/container-app-api.bicep' = {
     tableName: tableName
     containerName: storage.outputs.containerName
     appInsightsConnectionString: monitoring.outputs.applicationInsightsConnectionString
+    imageTag: environmentName
+    entraAppId: entraApp.outputs.appId
+    entraTenantId: tenant().tenantId
   }
 }
 
@@ -155,6 +168,7 @@ module workerApp './modules/container-app-worker.bicep' = {
     tableName: tableName
     containerName: storage.outputs.containerName
     appInsightsConnectionString: monitoring.outputs.applicationInsightsConnectionString
+    imageTag: environmentName
   }
 }
 
@@ -173,3 +187,5 @@ output AZURE_CONTAINER_APP_ENV_NAME string = containerAppEnv.outputs.name
 output DOCTALK_API_URL string = 'https://${apiApp.outputs.fqdn}'
 output AZURE_STORAGE_QUEUE_NAME string = queueName
 output AZURE_STORAGE_TABLE_NAME string = tableName
+output ENTRA_APP_ID string = entraApp.outputs.appId
+output ENTRA_TENANT_ID string = tenant().tenantId
