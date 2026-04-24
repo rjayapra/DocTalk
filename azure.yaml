@@ -1,3 +1,21 @@
 name: doctalk
 metadata:
   template: azd-init
+services:
+  api:
+    host: containerapp
+    project: .
+    language: python
+    image: ${AZURE_CONTAINER_REGISTRY_LOGIN_SERVER}/doctalk-api:${AZURE_ENV_NAME}
+  worker:
+    host: containerapp
+    project: .
+    language: python
+    image: ${AZURE_CONTAINER_REGISTRY_LOGIN_SERVER}/doctalk-worker:${AZURE_ENV_NAME}
+hooks:
+  postprovision:
+    shell: pwsh
+    run: |
+      Write-Host "Building images with az acr build (no local Docker needed)..."
+      az acr build --registry $env:AZURE_CONTAINER_REGISTRY_NAME --image "doctalk-api:$env:AZURE_ENV_NAME" --file Dockerfile.api .
+      az acr build --registry $env:AZURE_CONTAINER_REGISTRY_NAME --image "doctalk-worker:$env:AZURE_ENV_NAME" --file Dockerfile.worker .

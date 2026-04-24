@@ -1,0 +1,12 @@
+.azure/
+.squad/
+.git/
+.env
+.env.*
+output/
+infra/
+__pycache__/
+*.pyc
+*.md
+*.json
+!requirements.txt

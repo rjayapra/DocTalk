@@ -105,6 +105,32 @@ Generate Options:
 
 ---
 
+## Cloud API (Phase 2)
+
+DocTalk is deployed as a cloud API on Azure Container Apps with async job processing.
+
+**API Endpoint:** `https://ca-doctalk-api-mkffp6.wittyfield-14310482.eastus2.azurecontainerapps.io`
+
+### API Usage
+
+```bash
+# Submit a podcast generation job
+curl -X POST https://ca-doctalk-api-mkffp6.wittyfield-14310482.eastus2.azurecontainerapps.io/generate \
+  -H "Content-Type: application/json" \
+  -d '{"url": "https://learn.microsoft.com/azure/container-apps/overview"}'
+
+# Poll job status
+curl https://ca-doctalk-api-mkffp6.wittyfield-14310482.eastus2.azurecontainerapps.io/jobs/{job_id}
+
+# List all jobs
+curl https://ca-doctalk-api-mkffp6.wittyfield-14310482.eastus2.azurecontainerapps.io/jobs
+
+# Health check
+curl https://ca-doctalk-api-mkffp6.wittyfield-14310482.eastus2.azurecontainerapps.io/health
+```
+
+---
+
 ## Architecture
 
 See [ARCHITECTURE.md](./ARCHITECTURE.md) for the full design document with diagrams.
@@ -112,8 +138,10 @@ See [ARCHITECTURE.md](./ARCHITECTURE.md) for the full design document with diagr
 ### Pipeline Overview
 
 ```
-URL Input ──▶ Scraper ──▶ Azure OpenAI ──▶ Azure Speech TTS ──▶ MP3 Output
-              (BeautifulSoup)  (GPT-5.1)      (Neural SSML)
+Phase 1 (Local):   URL ──▶ Scraper ──▶ Azure OpenAI ──▶ Azure Speech TTS ──▶ MP3 Output
+
+Phase 2 (Cloud):   Client ──▶ FastAPI ──▶ Storage Queue ──▶ Worker ──▶ Blob Storage
+                              (ACA)                        (ACA + KEDA)
 ```
 
 ### Azure Resources
@@ -123,6 +151,9 @@ URL Input ──▶ Scraper ──▶ Azure OpenAI ──▶ Azure Speech TTS �
 | Azure OpenAI | `Microsoft.CognitiveServices/accounts` | S0 | GPT-5.1 model for script generation |
 | Azure Speech | `Microsoft.CognitiveServices/accounts` | S0 | Neural TTS with multi-voice SSML |
 | Blob Storage | `Microsoft.Storage/storageAccounts` | Standard_LRS | Store generated podcast MP3s |
+| Container Registry | `Microsoft.ContainerRegistry/registries` | Basic | Docker images for API + Worker |
+| Container Apps (API) | `Microsoft.App/containerApps` | Consumption | FastAPI backend with external ingress |
+| Container Apps (Worker) | `Microsoft.App/containerApps` | Consumption | KEDA queue-triggered worker (scale 0→5) |
 | Key Vault | `Microsoft.KeyVault/vaults` | Standard | Secrets management |
 | Log Analytics | `Microsoft.OperationalInsights/workspaces` | PerGB2018 | Centralized logging |
 | App Insights | `Microsoft.Insights/components` | — | Monitoring & APM |
@@ -143,19 +174,32 @@ podcast/
 │       ├── keyvault.bicep          # Azure Key Vault
 │       ├── openai.bicep            # Azure OpenAI + GPT-5.1 deployment
 │       ├── speech.bicep            # Azure Speech Services
-│       └── storage.bicep           # Blob Storage + podcasts container
+│       ├── storage.bicep           # Blob + Queue + Table Storage
+│       ├── registry.bicep          # Azure Container Registry
+│       ├── container-app-env.bicep # Container Apps Environment
+│       ├── container-app-api.bicep # API Container App
+│       ├── container-app-worker.bicep # Worker Container App (KEDA)
+│       └── identity.bicep          # Managed Identities + RBAC
 ├── src/
-│   ├── __init__.py
-│   ├── cli.py                      # Click-based CLI entry point
-│   ├── config.py                   # Environment variable configuration
-│   ├── scraper.py                  # Azure docs URL scraper (BeautifulSoup)
-│   ├── script_generator.py         # Azure OpenAI podcast script generation
-│   └── speech_synthesizer.py       # Azure Speech SSML synthesis + chunking
-├── output/                         # Generated podcast MP3 files
+│   ├── core/                       # Shared pipeline modules
+│   │   ├── pipeline.py             # Full scrape→script→TTS→blob pipeline
+│   │   ├── scraper.py              # Azure docs URL scraper
+│   │   ├── script_generator.py     # Azure OpenAI script generation
+│   │   └── speech_synthesizer.py   # Azure Speech SSML synthesis
+│   ├── api/
+│   │   └── main.py                 # FastAPI backend (POST /generate, GET /jobs)
+│   ├── worker/
+│   │   └── main.py                 # Queue consumer with KEDA scaling
+│   ├── cli.py                      # Click-based CLI (local + remote modes)
+│   └── config.py                   # Environment variable configuration
+├── output/                         # Generated podcast MP3 files (local mode)
+├── Dockerfile.api                  # API container image
+├── Dockerfile.worker               # Worker container image
 ├── azure.yaml                      # Azure Developer CLI configuration
 ├── requirements.txt                # Python dependencies
-├── .env.example                    # Environment variable template
-├── ARCHITECTURE.md                 # High-level architecture document
+├── .dockerignore                   # Build context exclusions
+├── ARCHITECTURE.md                 # Architecture document with diagrams
+├── ROADMAP.md                      # Project roadmap
 └── README.md                       # This file
 ```
 

@@ -4,6 +4,8 @@ import os
 import re
 import sys
 import click
+import httpx
+import json
 
 # Ensure UTF-8 output on Windows
 if sys.platform == "win32":
@@ -14,6 +16,25 @@ from .config import Config
 from .scraper import fetch_docs
 from .script_generator import generate_script
 from .speech_synthesizer import synthesize_single_narrator, synthesize_conversation
+
+
+def _submit_remote(url, style, api_url):
+    """Submit job to remote API."""
+    resp = httpx.post(f"{api_url}/generate", json={"url": url, "style": style}, timeout=30)
+    resp.raise_for_status()
+    return resp.json()
+
+
+def _poll_remote(job_id, api_url):
+    """Poll for job completion."""
+    import time
+    while True:
+        resp = httpx.get(f"{api_url}/jobs/{job_id}", timeout=30)
+        resp.raise_for_status()
+        data = resp.json()
+        if data["status"] in ("completed", "failed"):
+            return data
+        time.sleep(5)
 
 
 @click.group()
@@ -41,8 +62,31 @@ def cli():
     default=False,
     help="Only generate the script without audio synthesis.",
 )
-def generate(url: str, style: str, output: str, script_only: bool):
+@click.option(
+    "--local",
+    is_flag=True,
+    default=False,
+    help="Force local generation even when DOCTALK_API_URL is set.",
+)
+def generate(url: str, style: str, output: str, script_only: bool, local: bool):
     """Generate a podcast from an Azure documentation URL."""
+    # Remote mode: submit to API if configured and not --local
+    if not local and Config.DOCTALK_API_URL and not script_only:
+        click.echo(click.style(f"🌐 Submitting to DocTalk API at {Config.DOCTALK_API_URL}...", fg="cyan"))
+        try:
+            job = _submit_remote(url, style, Config.DOCTALK_API_URL)
+            click.echo(f"   Job ID: {job['id']}")
+            click.echo(click.style("⏳ Waiting for completion...", fg="cyan"))
+            result = _poll_remote(job["id"], Config.DOCTALK_API_URL)
+            if result["status"] == "completed":
+                click.echo(click.style(f"\n✓ Podcast ready: {result['audio_url']}", fg="green"))
+            else:
+                click.echo(click.style(f"\n✗ Job failed: {result.get('error', 'Unknown error')}", fg="red"))
+        except Exception as e:
+            click.echo(click.style(f"✗ API call failed: {e}", fg="red"))
+            raise click.Abort()
+        return
+
     # Validate config
     errors = Config.validate()
     if errors:

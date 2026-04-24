@@ -1,6 +1,6 @@
 # Architecture — DocTalk
 
-> Last updated: 2026-04-22 | Status: Phase 1 Deployed (CLI), Phase 2 Designed (API + Teams)
+> Last updated: 2026-04-22 | Status: Phase 1 Deployed (CLI), Phase 2 Deployed (API + Worker on Azure Container Apps)
 
 ---
 
@@ -14,8 +14,8 @@ Enable developers and cloud practitioners to consume Azure documentation as podc
 
 | Phase | Channels | Compute | Processing |
 |-------|----------|---------|------------|
-| **Phase 1 (Current)** | CLI | Local Python | Synchronous |
-| **Phase 2 (Next)** | CLI + Teams Bot | Azure Container Apps | Async with queue |
+| **Phase 1** | CLI | Local Python | Synchronous |
+| **Phase 2 (Current)** | CLI + API | Azure Container Apps | Async with queue |
 | **Phase 3 (Future)** | + Mobile / Web | ACA + CDN | Async + caching |
 
 ---

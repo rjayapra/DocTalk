@@ -17,18 +17,26 @@
 
 ---
 
-## Phase 2 — API Backend + Teams Bot (Next)
+## Phase 2 — API Backend + Async Worker ✅ (Deployed)
 
-| Item | Description | Effort |
-|------|-------------|--------|
-| 🌐 **FastAPI backend** | REST API (`POST /generate`, `GET /jobs/{id}`) hosted on Azure Container Apps | Medium |
-| ⚙️ **Background worker** | Queue-triggered container that runs the scrape → script → TTS pipeline | Medium |
-| 📬 **Storage Queue + Table** | Job queue for async processing + Table Storage for job status tracking | Small |
-| 🐳 **Containerize** | Dockerfile for API + Worker, push to Azure Container Registry | Small |
-| 💬 **Teams Bot** | Bot Framework bot — paste URL, get podcast via Adaptive Card | Medium |
-| 🔄 **CLI update** | CLI calls API instead of running locally; `--local` flag for offline mode | Small |
-| 🏗️ **Bicep modules** | New modules: `containerapp.bicep`, `bot.bicep`, `registry.bicep` | Medium |
-| 🧪 **Unit tests** | pytest for scraper, script generator, synthesizer, API endpoints | Medium |
+| Item | Status | Description |
+|------|--------|-------------|
+| 🌐 **FastAPI backend** | ✅ Done | REST API on Azure Container Apps — `POST /generate`, `GET /jobs/{id}`, `GET /jobs`, `GET /health` |
+| ⚙️ **Background worker** | ✅ Done | Queue-triggered worker with KEDA scaling (0→5 replicas) |
+| 📬 **Storage Queue + Table** | ✅ Done | Job queue + Table Storage for status tracking |
+| 🐳 **Containerize** | ✅ Done | Dockerfile.api + Dockerfile.worker, built with `az acr build` (no Docker Desktop needed) |
+| 🔄 **CLI update** | ✅ Done | CLI calls API by default; `--local` flag for offline mode |
+| 🏗️ **Bicep modules** | ✅ Done | 10 modules: ACR, ACA env, API, Worker, Identity + RBAC, Storage, OpenAI, Speech, Monitoring, Key Vault |
+| 🔐 **Managed Identity** | ✅ Done | Two user-assigned identities (API + Worker) with 9 RBAC role assignments |
+| 💬 **Teams Bot** | 🔜 Phase 3 | Deferred — API is ready, bot can be added later |
+| 🧪 **Unit tests** | 🔜 Next | pytest for scraper, script generator, synthesizer, API endpoints |
+
+### Deployed Endpoints
+
+| Resource | URL |
+|----------|-----|
+| **API** | `https://ca-doctalk-api-mkffp6.wittyfield-14310482.eastus2.azurecontainerapps.io` |
+| **Audio files** | `https://stpodcastmkffp6.blob.core.windows.net/podcasts/{job_id}.mp3` |
 
 ### Architecture Summary
 
@@ -46,10 +54,11 @@ See [ARCHITECTURE.md](./ARCHITECTURE.md) for full diagrams and API contracts.
 
 ---
 
-## Phase 3 — Intelligence & Reach
+## Phase 3 — Teams Bot, Intelligence & Reach
 
 | Item | Description | Effort |
 |------|-------------|--------|
+| 💬 **Teams Bot** | Bot Framework bot — paste URL, get podcast via Adaptive Card | Medium |
 | 🌍 **Multi-language** | Support non-English docs + localized TTS voices | Large |
 | 🎨 **Voice selection** | Let users pick from Azure Neural voice catalog | Medium |
 | ⏱️ **Adjustable length** | Control podcast length (5-min quick take vs. 20-min deep dive) | Small |
