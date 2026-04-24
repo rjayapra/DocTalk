@@ -38,12 +38,6 @@ provision:
       titleId: M365_TITLE_ID
       appId: M365_APP_ID
 
-deploy:
-  - uses: devTool/install
-    with:
-      devCert:
-        trust: true
-
 publish:
   - uses: teamsApp/validateManifest
     with:

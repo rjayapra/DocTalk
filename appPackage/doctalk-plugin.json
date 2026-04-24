@@ -117,7 +117,7 @@
   "runtimes": [
     {
       "type": "OpenApi",
-      "auth": { "type": "OAuthPluginVault" },
+      "auth": { "type": "none" },
       "spec": { "url": "openapi.yaml" },
       "run_for_functions": ["generatePodcast", "getJobStatus", "listRecentPodcasts"]
     }
