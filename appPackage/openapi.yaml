@@ -3,13 +3,13 @@ info:
   title: DocTalk API
   description: >
     Podcast generation service that converts web articles into audio podcasts.
-    Uses $ENTRA_TENANT_ID and $ENTRA_APP_ID placeholders for Azure Entra ID
-    (formerly Azure AD) configuration. Replace these with your tenant and
-    application IDs before deploying.
+    Uses ${{AAD_APP_TENANT_ID}} and ${{AAD_APP_CLIENT_ID}} placeholders for Azure Entra ID
+    (formerly Azure AD) configuration. These are resolved by Teams Toolkit at
+    build time from env/.env.dev.
   version: 2.1.0
 
 servers:
-  - url: https://ca-doctalk-api-m4ydxz.thankfulwave-bd3e8cef.eastus2.azurecontainerapps.io
+  - url: ${{DOCTALK_API_URL}}
     description: Production — Azure Container Apps
 
 paths:
@@ -94,14 +94,14 @@ components:
       type: oauth2
       description: >
         Azure Entra ID (formerly Azure AD) OAuth 2.0 authorization code flow.
-        Replace $ENTRA_TENANT_ID with your Azure tenant ID and $ENTRA_APP_ID
+        Replace ${{AAD_APP_TENANT_ID}} with your Azure tenant ID and ${{AAD_APP_CLIENT_ID}}
         with the application (client) ID registered in Entra ID.
       flows:
         authorizationCode:
-          authorizationUrl: https://login.microsoftonline.com/$ENTRA_TENANT_ID/oauth2/v2.0/authorize
-          tokenUrl: https://login.microsoftonline.com/$ENTRA_TENANT_ID/oauth2/v2.0/token
+          authorizationUrl: https://login.microsoftonline.com/${{AAD_APP_TENANT_ID}}/oauth2/v2.0/authorize
+          tokenUrl: https://login.microsoftonline.com/${{AAD_APP_TENANT_ID}}/oauth2/v2.0/token
           scopes:
-            api://$ENTRA_APP_ID/Podcasts.ReadWrite: Read and write podcast generation jobs.
+            api://${{AAD_APP_CLIENT_ID}}/Podcasts.ReadWrite: Read and write podcast generation jobs.
 
   schemas:
     GenerateRequest:

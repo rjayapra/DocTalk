@@ -1,0 +1,30 @@
+{
+    "id": "${{AAD_APP_OBJECT_ID}}",
+    "appId": "${{AAD_APP_CLIENT_ID}}",
+    "name": "DocTalk API-${{TEAMSFX_ENV}}",
+    "identifierUris": [
+        "api://${{AAD_APP_CLIENT_ID}}"
+    ],
+    "signInAudience": "AzureADMyOrg",
+    "api": {
+        "requestedAccessTokenVersion": 2,
+        "oauth2PermissionScopes": [
+            {
+                "id": "6416a0e1-5458-44a6-94b3-10da36b688fd",
+                "adminConsentDescription": "Allows the app to generate and manage podcasts on behalf of the user",
+                "adminConsentDisplayName": "Read and write podcasts",
+                "userConsentDescription": "Allows DocTalk to generate and manage podcasts for you",
+                "userConsentDisplayName": "Read and write your podcasts",
+                "isEnabled": true,
+                "type": "User",
+                "value": "Podcasts.ReadWrite"
+            }
+        ]
+    },
+    "replyUrlsWithType": [
+        {
+            "url": "https://teams.microsoft.com/api/platform/v1.0/oAuthRedirect",
+            "type": "Web"
+        }
+    ]
+}

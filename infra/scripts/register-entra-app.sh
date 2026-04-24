@@ -2,6 +2,11 @@
 #
 # register-entra-app.sh — Register an Entra ID app for the DocTalk API
 #
+# NOTE: Teams Toolkit now handles Entra app registration automatically via
+# `teamsapp provision` (aadApp/create + aadApp/update steps in teamsapp.yml).
+# This script is kept as a manual fallback for non-TTK environments or CI
+# pipelines that don't use Teams Toolkit.
+#
 # Usage:
 #   ./infra/scripts/register-entra-app.sh
 #
@@ -9,7 +14,7 @@
 #   - Azure CLI authenticated (az login)
 #   - Application Administrator or Global Administrator role
 #
-# Outputs ENTRA_CLIENT_ID and ENTRA_TENANT_ID for use in project config.
+# Outputs AAD_APP_CLIENT_ID and AAD_APP_TENANT_ID for use in project config.
 #
 set -euo pipefail
 
@@ -76,15 +81,15 @@ echo "============================================"
 echo " Entra ID App Registration Complete"
 echo "============================================"
 echo ""
-echo " App Name:        ${APP_DISPLAY_NAME}"
-echo " ENTRA_CLIENT_ID: ${APP_ID}"
-echo " ENTRA_TENANT_ID: ${TENANT_ID}"
-echo " API Scope:       api://${APP_ID}/${SCOPE_NAME}"
-echo " Redirect URI:    ${REDIRECT_URI}"
-echo " Token Version:   v2.0"
+echo " App Name:           ${APP_DISPLAY_NAME}"
+echo " AAD_APP_CLIENT_ID:  ${APP_ID}"
+echo " AAD_APP_TENANT_ID:  ${TENANT_ID}"
+echo " API Scope:          api://${APP_ID}/${SCOPE_NAME}"
+echo " Redirect URI:       ${REDIRECT_URI}"
+echo " Token Version:      v2.0"
 echo ""
 echo "Add these to your .env.dev (do NOT commit):"
 echo ""
-echo "  ENTRA_CLIENT_ID=${APP_ID}"
-echo "  ENTRA_TENANT_ID=${TENANT_ID}"
+echo "  AAD_APP_CLIENT_ID=${APP_ID}"
+echo "  AAD_APP_TENANT_ID=${TENANT_ID}"
 echo ""

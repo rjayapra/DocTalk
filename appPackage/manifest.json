@@ -31,10 +31,10 @@
     ]
   },
   "validDomains": [
-    "ca-doctalk-api-m4ydxz.thankfulwave-bd3e8cef.eastus2.azurecontainerapps.io"
+    "${{DOCTALK_API_DOMAIN}}"
   ],
   "webApplicationInfo": {
-    "id": "${{ENTRA_APP_ID}}",
-    "resource": "api://${{ENTRA_APP_ID}}"
+    "id": "${{AAD_APP_CLIENT_ID}}",
+    "resource": "api://${{AAD_APP_CLIENT_ID}}"
   }
 }
