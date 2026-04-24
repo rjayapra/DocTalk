@@ -1,0 +1,36 @@
+Owned by: @rjayaprakash_microsoft
+
+App ID: 3491485
+
+Using your App ID to get installation tokens? You can now use your Client ID instead.
+
+Client ID: Iv23liSgKattaY5nGbbQ
+Client Secret : 944f30c8033cefbeb95162e3432f3edbed15426c
+GitHub Apps can use OAuth credentials to identify users. Learn more about identifying users by reading our integration developer documentation.
+
+Public link
+https://github.com/apps/doctalk-rj
+
+
+
+
+
+Owned by: @rjayapra
+
+App ID: 3491644
+
+Using your App ID to get installation tokens? You can now use your Client ID instead.
+
+Client ID: Iv23li1sxpoUhwm5tgse
+Client secrets :  8c7f3170ce2eeeb9f72e962f62ed4db9b05cb24c 
+
+Owned by: @work-rj
+
+App ID: 3491898
+
+Using your App ID to get installation tokens? You can now use your Client ID instead.
+
+Client ID: Iv23lif5AIx4asDSZiRI
+Client secret : bd48c1bbb1fe26634541e6bafc4832a2e8d8078f
+
+https://github.com/apps/podcastagent

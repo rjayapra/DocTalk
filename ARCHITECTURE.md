@@ -1,6 +1,6 @@
 # Architecture — DocTalk
 
-> Last updated: 2026-04-22 | Status: Phase 1 Deployed (CLI), Phase 2 Deployed (API + Worker on Azure Container Apps)
+> Last updated: 2026-04-24 | Status: Phase 1 Deployed (CLI), Phase 2 Deployed (API + Worker on ACA), Phase 3 Designed (Copilot Extension)
 
 ---
 
@@ -15,8 +15,9 @@ Enable developers and cloud practitioners to consume Azure documentation as podc
 | Phase | Channels | Compute | Processing |
 |-------|----------|---------|------------|
 | **Phase 1** | CLI | Local Python | Synchronous |
-| **Phase 2 (Current)** | CLI + API | Azure Container Apps | Async with queue |
-| **Phase 3 (Future)** | + Mobile / Web | ACA + CDN | Async + caching |
+| **Phase 2 (Current)** | CLI + API + Web | Azure Container Apps | Async with queue |
+| **Phase 3 (Next)** | + Copilot Chat | ACA + Copilot Extension | Async + SSE streaming |
+| **Phase 4 (Future)** | + Mobile | ACA + CDN | Async + caching |
 
 ---
 
@@ -26,7 +27,9 @@ Enable developers and cloud practitioners to consume Azure documentation as podc
 flowchart TB
     subgraph "Clients"
         CLI["🖥️ CLI<br/>(Python)"]
+        WEB["🌐 Web<br/>(HTML/CSS/JS)"]
         TEAMS["💬 Teams Bot<br/>(Bot Framework)"]
+        COPILOT["🤖 Copilot Chat<br/>(GitHub Extension)"]
     end
 
     subgraph "Azure Container Apps"
@@ -54,7 +57,9 @@ flowchart TB
     end
 
     CLI -->|POST /generate| API
+    WEB -->|POST /generate| API
     TEAMS -->|Bot message| API
+    COPILOT -->|POST / (agent)| API
     API -->|Enqueue job| QUEUE
     API -->|Create job record| TABLE
     QUEUE -->|Dequeue| WORKER
@@ -63,6 +68,7 @@ flowchart TB
     WORKER -->|Upload MP3| BLOB
     WORKER -->|Update status| TABLE
     CLI -->|GET /jobs/id| API
+    WEB -->|GET /jobs/id| API
     TEAMS -.->|Proactive notification| TEAMS
     API -->|Read status| TABLE
     API -->|Generate SAS URL| BLOB
@@ -310,6 +316,83 @@ graph TB
 │                                             │
 └─────────────────────────────────────────────┘
 ```
+
+---
+
+## 8.1 Phase 3: GitHub Copilot Extension
+
+> Design doc: [`src/copilot-extension/DESIGN.md`](src/copilot-extension/DESIGN.md)
+
+A **GitHub Copilot Extension** (agent) that lets developers generate podcasts from Copilot Chat using `@doctalk generate <url>`. Deployed as a third Container App alongside the API and Worker.
+
+### Architecture
+
+```mermaid
+flowchart LR
+    subgraph "Copilot Chat"
+        VS["VS Code"]
+        GH["github.com"]
+        JB["JetBrains"]
+    end
+
+    subgraph "GitHub"
+        CP["Copilot Platform"]
+    end
+
+    subgraph "Azure Container Apps"
+        EXT["🔌 DocTalk Extension<br/>(FastAPI + SSE)<br/>ca-doctalk-copilot"]
+        API["🌐 DocTalk API<br/>(FastAPI)<br/>ca-doctalk-api"]
+        WORKER["⚙️ Worker<br/>ca-doctalk-worker"]
+    end
+
+    VS & GH & JB -->|"@doctalk generate ..."| CP
+    CP -->|"POST / {messages}"| EXT
+    EXT -->|"POST /generate"| API
+    EXT -->|"GET /jobs/{id} (poll)"| API
+    EXT -.->|"SSE stream"| CP
+    CP -.->|"Renders markdown"| VS & GH & JB
+    API -->|"Enqueue"| WORKER
+```
+
+### Request Flow
+
+```mermaid
+sequenceDiagram
+    participant User as Developer
+    participant CP as Copilot Chat
+    participant Ext as DocTalk Extension
+    participant API as DocTalk API
+    participant W as Worker
+
+    User->>CP: @doctalk generate https://learn.microsoft.com/...
+    CP->>Ext: POST / {messages, X-GitHub-Token}
+    Ext->>API: POST /generate {url, style}
+    API-->>Ext: 202 {job_id}
+    Ext-->>CP: SSE: 🎙️ Generating...
+
+    loop Poll every 5s
+        Ext->>API: GET /jobs/{job_id}
+        API-->>Ext: {status}
+        Ext-->>CP: SSE: ⏳ status update
+    end
+
+    W-->>API: Job completed
+    Ext->>API: GET /jobs/{job_id}
+    API-->>Ext: {status: completed, download_url}
+    Ext-->>CP: SSE: ✅ Ready! [Download MP3]
+    Ext-->>CP: SSE: [DONE]
+    CP-->>User: Rendered response with link
+```
+
+### Key Design Decisions
+
+| Decision | Choice | Rationale |
+|----------|--------|-----------|
+| Deployment | Separate ACA app (`ca-doctalk-copilot`) | SSE long-polling needs different scaling profile |
+| Protocol | Copilot agent protocol (POST → SSE) | Standard GitHub Copilot Extension pattern |
+| API communication | HTTPS to existing public API endpoint | No VNet changes needed; hackathon-simple |
+| Language | Python/FastAPI | Team consistency |
+| Cost | ~$1–3/mo (scale-to-zero) | Consumption plan, minimal overhead |
 
 ---
 

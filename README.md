@@ -131,6 +131,39 @@ curl https://ca-doctalk-api-mkffp6.wittyfield-14310482.eastus2.azurecontainerapp
 
 ---
 
+## Copilot Extension (Hackathon Demo)
+
+DocTalk is registered as a **GitHub Copilot Extension** — use it directly in Copilot Chat!
+
+### Quick Start
+
+1. **Register the GitHub App** — Follow [COPILOT-EXTENSION-SETUP.md](./COPILOT-EXTENSION-SETUP.md)
+2. **Install on your account** — Add the DocTalk app to your personal or organization account
+3. **Open Copilot Chat** — VS Code or github.com
+4. **Type a command:**
+   ```
+   @doctalk help
+   @doctalk generate https://learn.microsoft.com/azure/container-apps/overview
+   ```
+
+### Features
+
+- 🎯 **Inline in Copilot Chat** — No context-switching
+- 📡 **Real-time streaming** — See progress as the podcast is generated (SSE)
+- 🎭 **Two modes** — Single narrator or two-host conversation
+- 🔗 **Microsoft Learn URLs** — Auto-detects and processes Azure docs
+- 📊 **Job status tracking** — Check generation progress anytime
+
+### Documentation
+
+See **[COPILOT-EXTENSION-SETUP.md](./COPILOT-EXTENSION-SETUP.md)** for:
+- Step-by-step GitHub App registration
+- Installation instructions
+- Testing and troubleshooting
+- Demo script for hackathon
+
+---
+
 ## Architecture
 
 See [ARCHITECTURE.md](./ARCHITECTURE.md) for the full design document with diagrams.

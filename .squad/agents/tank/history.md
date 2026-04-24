@@ -26,3 +26,12 @@
 - **New revision:** `ca-doctalk-api-mkffp6--0000002` deployed and running
 - **Deployment time:** ~2 minutes (build + update)
 - **No issues encountered** — clean deployment with zero downtime
+
+### Deployment — SAS token fix for audio URLs (2025-07-24)
+- **Changes deployed:**
+  - API now generates User Delegation SAS tokens at read time for audio blob URLs (src/api/main.py)
+  - `_add_sas_token()` helper uses `get_user_delegation_key()` + `generate_blob_sas()` with read-only permission and 1-hour expiry
+- **Build command:** `az acr build --registry crdoctalkmkffp6 --image "doctalk-api:podcast-dev" --file Dockerfile.api .`
+- **Deploy command:** `az containerapp update --name ca-doctalk-api-mkffp6 --resource-group rg-podcast-dev --image "crdoctalkmkffp6.azurecr.io/doctalk-api:podcast-dev"`
+- **Verification:** Health endpoint returned `{"status":"healthy","service":"doctalk-api","version":"2.0.0"}`
+- **No issues encountered** — clean build and deploy

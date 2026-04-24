@@ -1,0 +1,490 @@
+/* CSS Variables for Theming */
+:root {
+    --primary-color: #0078D4;
+    --primary-hover: #106EBE;
+    --primary-dark: #005A9E;
+    --bg-primary: #FFFFFF;
+    --bg-secondary: #F5F5F5;
+    --bg-card: #FFFFFF;
+    --text-primary: #323130;
+    --text-secondary: #605E5C;
+    --text-muted: #8A8886;
+    --border-color: #EDEBE9;
+    --success-color: #107C10;
+    --error-color: #D13438;
+    --warning-color: #F7630C;
+    --shadow-sm: 0 1px 3px rgba(0, 0, 0, 0.1);
+    --shadow-md: 0 4px 12px rgba(0, 0, 0, 0.1);
+    --shadow-lg: 0 8px 24px rgba(0, 0, 0, 0.15);
+    --font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, 'Helvetica Neue', sans-serif;
+}
+
+/* Dark Mode */
+@media (prefers-color-scheme: dark) {
+    :root {
+        --bg-primary: #1E1E1E;
+        --bg-secondary: #252525;
+        --bg-card: #2D2D2D;
+        --text-primary: #FFFFFF;
+        --text-secondary: #D1D1D1;
+        --text-muted: #A0A0A0;
+        --border-color: #3D3D3D;
+        --shadow-sm: 0 1px 3px rgba(0, 0, 0, 0.3);
+        --shadow-md: 0 4px 12px rgba(0, 0, 0, 0.4);
+        --shadow-lg: 0 8px 24px rgba(0, 0, 0, 0.5);
+    }
+}
+
+/* Reset & Base Styles */
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+body {
+    font-family: var(--font-family);
+    background-color: var(--bg-secondary);
+    color: var(--text-primary);
+    line-height: 1.6;
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+}
+
+.container {
+    max-width: 1200px;
+    margin: 0 auto;
+    padding: 0 20px;
+    width: 100%;
+}
+
+/* Header */
+.header {
+    background-color: var(--bg-card);
+    border-bottom: 1px solid var(--border-color);
+    padding: 24px 0;
+    box-shadow: var(--shadow-sm);
+}
+
+.header-content {
+    max-width: 1200px;
+    margin: 0 auto;
+    padding: 0 20px;
+}
+
+.logo {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+}
+
+.icon {
+    font-size: 48px;
+    line-height: 1;
+}
+
+.branding h1 {
+    font-size: 32px;
+    font-weight: 600;
+    color: var(--primary-color);
+    margin: 0;
+}
+
+.subtitle {
+    font-size: 14px;
+    color: var(--text-muted);
+    margin: 0;
+}
+
+/* Main Content */
+.main-content {
+    padding: 40px 0;
+    flex: 1;
+}
+
+/* Card */
+.card {
+    background-color: var(--bg-card);
+    border-radius: 12px;
+    padding: 32px;
+    box-shadow: var(--shadow-md);
+    margin-bottom: 32px;
+    transition: box-shadow 0.3s ease;
+}
+
+.card:hover {
+    box-shadow: var(--shadow-lg);
+}
+
+/* Generate Section */
+.generate-section h2 {
+    font-size: 24px;
+    font-weight: 600;
+    margin-bottom: 24px;
+    color: var(--text-primary);
+}
+
+.generate-form {
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+}
+
+.form-group {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.form-group label {
+    font-size: 14px;
+    font-weight: 600;
+    color: var(--text-secondary);
+}
+
+.form-group input,
+.form-group select {
+    padding: 12px 16px;
+    font-size: 16px;
+    border: 1px solid var(--border-color);
+    border-radius: 8px;
+    background-color: var(--bg-primary);
+    color: var(--text-primary);
+    transition: border-color 0.2s ease, box-shadow 0.2s ease;
+}
+
+.form-group input:focus,
+.form-group select:focus {
+    outline: none;
+    border-color: var(--primary-color);
+    box-shadow: 0 0 0 3px rgba(0, 120, 212, 0.1);
+}
+
+.form-group input::placeholder {
+    color: var(--text-muted);
+}
+
+/* Buttons */
+.btn {
+    padding: 14px 28px;
+    font-size: 16px;
+    font-weight: 600;
+    border: none;
+    border-radius: 8px;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+}
+
+.btn-primary {
+    background-color: var(--primary-color);
+    color: white;
+}
+
+.btn-primary:hover:not(:disabled) {
+    background-color: var(--primary-hover);
+    transform: translateY(-1px);
+    box-shadow: var(--shadow-md);
+}
+
+.btn-primary:active:not(:disabled) {
+    transform: translateY(0);
+}
+
+.btn-primary:disabled {
+    background-color: var(--text-muted);
+    cursor: not-allowed;
+    opacity: 0.6;
+}
+
+/* Status Section */
+.status-section {
+    animation: slideDown 0.3s ease;
+}
+
+@keyframes slideDown {
+    from {
+        opacity: 0;
+        transform: translateY(-20px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+.status-content {
+    display: flex;
+    align-items: center;
+    gap: 24px;
+}
+
+.status-text h3 {
+    font-size: 20px;
+    font-weight: 600;
+    margin-bottom: 4px;
+}
+
+.status-text p {
+    font-size: 14px;
+    color: var(--text-secondary);
+}
+
+/* Spinner */
+.spinner {
+    width: 48px;
+    height: 48px;
+    border: 4px solid var(--border-color);
+    border-top-color: var(--primary-color);
+    border-radius: 50%;
+    animation: spin 1s linear infinite;
+    flex-shrink: 0;
+}
+
+@keyframes spin {
+    to {
+        transform: rotate(360deg);
+    }
+}
+
+/* Audio Player Section */
+.player-section {
+    animation: slideDown 0.3s ease;
+}
+
+.player-section h3 {
+    font-size: 20px;
+    font-weight: 600;
+    margin-bottom: 16px;
+}
+
+.audio-player-wrapper {
+    margin-bottom: 16px;
+}
+
+#audio-player {
+    width: 100%;
+    height: 54px;
+    border-radius: 8px;
+}
+
+.player-title {
+    font-size: 14px;
+    color: var(--text-secondary);
+    margin: 0;
+}
+
+/* Recent Podcasts Section */
+.recent-section h2 {
+    font-size: 24px;
+    font-weight: 600;
+    margin-bottom: 24px;
+    color: var(--text-primary);
+}
+
+.recent-list {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+    gap: 20px;
+}
+
+.loading-placeholder {
+    grid-column: 1 / -1;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 16px;
+    padding: 60px 20px;
+    color: var(--text-muted);
+}
+
+.podcast-card {
+    background-color: var(--bg-card);
+    border-radius: 12px;
+    padding: 24px;
+    box-shadow: var(--shadow-sm);
+    transition: all 0.2s ease;
+    cursor: pointer;
+    border: 1px solid var(--border-color);
+}
+
+.podcast-card:hover {
+    box-shadow: var(--shadow-md);
+    transform: translateY(-2px);
+}
+
+.podcast-card-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    margin-bottom: 12px;
+}
+
+.podcast-card-title {
+    font-size: 16px;
+    font-weight: 600;
+    color: var(--text-primary);
+    margin: 0 0 8px 0;
+    line-height: 1.4;
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+}
+
+.podcast-status {
+    display: inline-flex;
+    align-items: center;
+    padding: 4px 10px;
+    border-radius: 12px;
+    font-size: 12px;
+    font-weight: 600;
+    text-transform: uppercase;
+    flex-shrink: 0;
+}
+
+.status-completed {
+    background-color: rgba(16, 124, 16, 0.1);
+    color: var(--success-color);
+}
+
+.status-processing {
+    background-color: rgba(0, 120, 212, 0.1);
+    color: var(--primary-color);
+}
+
+.status-queued {
+    background-color: rgba(247, 99, 12, 0.1);
+    color: var(--warning-color);
+}
+
+.status-failed {
+    background-color: rgba(209, 52, 56, 0.1);
+    color: var(--error-color);
+}
+
+.podcast-card-meta {
+    font-size: 13px;
+    color: var(--text-muted);
+    margin-bottom: 16px;
+}
+
+.podcast-card-actions {
+    display: flex;
+    gap: 8px;
+}
+
+.btn-play {
+    flex: 1;
+    padding: 10px 16px;
+    font-size: 14px;
+    font-weight: 600;
+    background-color: var(--primary-color);
+    color: white;
+    border: none;
+    border-radius: 6px;
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.btn-play:hover {
+    background-color: var(--primary-hover);
+}
+
+.btn-play:disabled {
+    background-color: var(--text-muted);
+    cursor: not-allowed;
+    opacity: 0.5;
+}
+
+/* Footer */
+.footer {
+    background-color: var(--bg-card);
+    border-top: 1px solid var(--border-color);
+    padding: 24px 0;
+    text-align: center;
+    margin-top: auto;
+}
+
+.footer p {
+    color: var(--text-muted);
+    font-size: 14px;
+}
+
+/* Utility Classes */
+.hidden {
+    display: none !important;
+}
+
+.error-message {
+    background-color: rgba(209, 52, 56, 0.1);
+    color: var(--error-color);
+    padding: 12px 16px;
+    border-radius: 8px;
+    margin-top: 16px;
+    font-size: 14px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.error-message::before {
+    content: "⚠️";
+    font-size: 18px;
+}
+
+/* Responsive Design */
+@media (max-width: 768px) {
+    .header-content {
+        padding: 0 16px;
+    }
+
+    .container {
+        padding: 0 16px;
+    }
+
+    .icon {
+        font-size: 36px;
+    }
+
+    .branding h1 {
+        font-size: 24px;
+    }
+
+    .card {
+        padding: 24px 20px;
+    }
+
+    .main-content {
+        padding: 24px 0;
+    }
+
+    .recent-list {
+        grid-template-columns: 1fr;
+    }
+
+    .status-content {
+        flex-direction: column;
+        text-align: center;
+    }
+
+    .podcast-card {
+        padding: 20px;
+    }
+}
+
+@media (max-width: 480px) {
+    .form-group input,
+    .form-group select {
+        font-size: 14px;
+    }
+
+    .btn {
+        font-size: 14px;
+        padding: 12px 24px;
+    }
+}

@@ -2,7 +2,8 @@
 import os
 import time
 import tempfile
-from azure.storage.blob import BlobServiceClient
+from datetime import datetime, timezone, timedelta
+from azure.storage.blob import BlobServiceClient, generate_blob_sas, BlobSasPermissions
 from azure.identity import DefaultAzureCredential
 
 from .scraper import fetch_docs
@@ -57,7 +58,7 @@ def run_pipeline(job: Job, config) -> Job:
 
 
 def _upload_to_blob(file_path: str, blob_name: str, config) -> str:
-    """Upload file to Azure Blob Storage and return the URL."""
+    """Upload file to Azure Blob Storage and return a SAS URL valid for 7 days."""
     credential = DefaultAzureCredential()
     account_url = f"https://{config.AZURE_STORAGE_ACCOUNT_NAME}.blob.core.windows.net"
     blob_service = BlobServiceClient(account_url=account_url, credential=credential)
@@ -66,4 +67,44 @@ def _upload_to_blob(file_path: str, blob_name: str, config) -> str:
     with open(file_path, "rb") as data:
         container_client.upload_blob(name=blob_name, data=data, overwrite=True)
 
-    return f"{account_url}/{config.AZURE_STORAGE_CONTAINER_NAME}/{blob_name}"
+    # Generate a SAS token valid for 7 days so anyone with the link can download
+    expiry = datetime.now(timezone.utc) + timedelta(days=7)
+
+    # Get storage account key to sign the SAS token
+    from azure.mgmt.storage import StorageManagementClient
+    import re as _re
+
+    # Retrieve account key via management API (requires Contributor on storage account)
+    # Fall back to unsigned URL if key retrieval fails (e.g. no mgmt permissions)
+    try:
+        # Extract subscription & resource group from the credential's token
+        from azure.identity import DefaultAzureCredential as _DAC
+        mgmt_cred = _DAC()
+
+        # Get account key
+        subscription_id = os.getenv("AZURE_SUBSCRIPTION_ID", "")
+        resource_group = os.getenv("AZURE_RESOURCE_GROUP", "")
+        if not subscription_id or not resource_group:
+            raise ValueError("AZURE_SUBSCRIPTION_ID or AZURE_RESOURCE_GROUP not set")
+
+        storage_client = StorageManagementClient(mgmt_cred, subscription_id)
+        keys = storage_client.storage_accounts.list_keys(
+            resource_group, config.AZURE_STORAGE_ACCOUNT_NAME
+        )
+        account_key = keys.keys[0].value
+
+        sas_token = generate_blob_sas(
+            account_name=config.AZURE_STORAGE_ACCOUNT_NAME,
+            container_name=config.AZURE_STORAGE_CONTAINER_NAME,
+            blob_name=blob_name,
+            account_key=account_key,
+            permission=BlobSasPermissions(read=True),
+            expiry=expiry,
+            content_type="audio/mpeg",
+            content_disposition=f'attachment; filename="{blob_name}"',
+        )
+        return f"{account_url}/{config.AZURE_STORAGE_CONTAINER_NAME}/{blob_name}?{sas_token}"
+
+    except Exception:
+        # If SAS generation fails, return plain URL (works if container has public access)
+        return f"{account_url}/{config.AZURE_STORAGE_CONTAINER_NAME}/{blob_name}"

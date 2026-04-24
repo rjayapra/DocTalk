@@ -1,0 +1,105 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>DocTalk - Azure Docs → Podcast</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <div class="container">
+        <!-- Header -->
+        <header class="header">
+            <div class="header-content">
+                <div class="logo">
+                    <span class="icon">🎙️</span>
+                    <div class="branding">
+                        <h1>DocTalk</h1>
+                        <p class="subtitle">Azure Docs → Podcast</p>
+                    </div>
+                </div>
+            </div>
+        </header>
+
+        <!-- Main Content -->
+        <main class="main-content">
+            <!-- Generate Section -->
+            <section class="generate-section card">
+                <h2>Generate a Podcast</h2>
+                <form id="generate-form" class="generate-form">
+                    <div class="form-group">
+                        <label for="doc-url">Azure Documentation URL</label>
+                        <input 
+                            type="url" 
+                            id="doc-url" 
+                            name="url" 
+                            placeholder="Paste an Azure docs URL..."
+                            required
+                        >
+                    </div>
+                    <div class="form-group">
+                        <label for="podcast-name">Podcast Name (optional)</label>
+                        <input 
+                            type="text" 
+                            id="podcast-name" 
+                            name="title" 
+                            placeholder="Give your podcast a name (optional)"
+                        >
+                    </div>
+                    <div class="form-group">
+                        <label for="style">Podcast Style</label>
+                        <select id="style" name="style" required>
+                            <option value="conversation">Conversation</option>
+                            <option value="summary">Summary</option>
+                            <option value="deep-dive">Deep Dive</option>
+                        </select>
+                    </div>
+                    <button type="submit" class="btn btn-primary" id="generate-btn">
+                        <span class="btn-text">Generate Podcast</span>
+                    </button>
+                </form>
+            </section>
+
+            <!-- Status Section -->
+            <section id="status-section" class="status-section card hidden">
+                <div class="status-content">
+                    <div class="spinner"></div>
+                    <div class="status-text">
+                        <h3 id="status-title">Processing...</h3>
+                        <p id="status-message">Your podcast is being generated</p>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Audio Player Section -->
+            <section id="player-section" class="player-section card hidden">
+                <h3>Now Playing</h3>
+                <div class="audio-player-wrapper">
+                    <audio id="audio-player" controls preload="metadata">
+                        Your browser does not support the audio element.
+                    </audio>
+                </div>
+                <p id="player-title" class="player-title"></p>
+            </section>
+
+            <!-- Recent Podcasts Section -->
+            <section class="recent-section">
+                <h2>Recent Podcasts</h2>
+                <div id="recent-list" class="recent-list">
+                    <div class="loading-placeholder">
+                        <div class="spinner"></div>
+                        <p>Loading recent podcasts...</p>
+                    </div>
+                </div>
+            </section>
+        </main>
+
+        <!-- Footer -->
+        <footer class="footer">
+            <p>Powered by Azure OpenAI + Azure Speech</p>
+        </footer>
+    </div>
+
+    <script src="app.js"></script>
+</body>
+</html>
