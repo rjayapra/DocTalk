@@ -10,12 +10,11 @@
 | # | Requirement | Details |
 |---|-------------|---------|
 | 1 | **M365 tenant** | A Microsoft 365 developer or enterprise tenant with Copilot license |
-| 2 | **Teams Toolkit** | VS Code + Teams Toolkit extension v6.9+ (or CLI `teamsapp`) installed |
-| 3 | **API running** | DocTalk API deployed to Azure Container Apps via `azd up` |
-| 4 | **Azure resources** | Storage Account (table `podcastjobs`, queue `podcast-jobs`, container `podcasts`) provisioned |
-| 5 | **Environment variables** | Update `env/.env.dev` with `DOCTALK_API_URL` (auto-populated after `azd up`) |
-
-> **Note:** OAuth/Entra ID authentication is **disabled** for wave 1. The API uses anonymous access for now since no downstream OBO token exchange is required.
+| 2 | **Teams Toolkit** | VS Code + M365 Agents Toolkit extension v6.9+ (or CLI `teamsapp`) installed |
+| 3 | **Entra app registration** | Run `infra/scripts/register-entra-app.sh` — note the Client ID and Tenant ID |
+| 4 | **Environment variables** | Populate `env/.env.dev` with `ENTRA_APP_ID`, `ENTRA_TENANT_ID`, `AZURE_STORAGE_ACCOUNT_NAME` |
+| 5 | **API running** | DocTalk API deployed or running locally (`uvicorn src.api.main:app`) |
+| 6 | **Azure resources** | Storage Account (table `podcastjobs`, queue `podcast-jobs`, container `podcasts`) provisioned |
 
 ---
 
@@ -79,7 +78,13 @@
 
 ## Auth Flow Verification
 
-> **Wave 1:** OAuth is **disabled**. API uses anonymous access. This section will be re-enabled when OBO token exchange is implemented for downstream Azure service calls.
+| # | Test | Expected Result | Pass/Fail |
+|---|------|-----------------|-----------|
+| A1 | First API call triggers OAuth consent | Copilot shows OAuth popup / consent card | |
+| A2 | Grant consent | Token acquired, API call succeeds | |
+| A3 | Subsequent calls use cached token | No repeated consent prompts | |
+| A4 | Revoke app consent in Entra portal | Next API call triggers re-consent | |
+| A5 | Verify token audience | JWT `aud` claim matches `api://<ENTRA_APP_ID>` | |
 
 ---
 
@@ -93,6 +98,7 @@
 | E4 | **Missing permissions** | Remove Storage RBAC roles from managed identity | SAS generation fails, fallback URL returned (no 500) | |
 | E5 | **Expired SAS token** | Wait >1 hour, click old Play link | Download fails; re-check status to get fresh SAS | |
 | E6 | **Rate limit** | Submit many jobs rapidly | Queue accepts all; no lost jobs | |
+| E7 | **Invalid auth** | Modify ENTRA_APP_ID to wrong value | 401 returned, Copilot re-prompts for auth | |
 
 ---
 

@@ -85,7 +85,24 @@ paths:
                 items:
                   $ref: "#/components/schemas/JobResponse"
 
+security:
+  - oauth2: []
+
 components:
+  securitySchemes:
+    oauth2:
+      type: oauth2
+      description: >
+        Azure Entra ID (formerly Azure AD) OAuth 2.0 authorization code flow.
+        Replace $ENTRA_TENANT_ID with your Azure tenant ID and $ENTRA_APP_ID
+        with the application (client) ID registered in Entra ID.
+      flows:
+        authorizationCode:
+          authorizationUrl: https://login.microsoftonline.com/$ENTRA_TENANT_ID/oauth2/v2.0/authorize
+          tokenUrl: https://login.microsoftonline.com/$ENTRA_TENANT_ID/oauth2/v2.0/token
+          scopes:
+            api://$ENTRA_APP_ID/Podcasts.ReadWrite: Read and write podcast generation jobs.
+
   schemas:
     GenerateRequest:
       type: object
