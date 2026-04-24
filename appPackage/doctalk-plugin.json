@@ -1,0 +1,125 @@
+{
+  "$schema": "https://developer.microsoft.com/json-schemas/copilot/plugin/v2.2/schema.json",
+  "schema_version": "v2.2",
+  "name_for_human": "DocTalk",
+  "description_for_human": "Generate podcast-style audio from Azure documentation URLs",
+  "namespace": "doctalk",
+  "functions": [
+    {
+      "name": "generatePodcast",
+      "description": "Submit a new podcast generation job from an Azure docs URL. Returns a job ID to check status.",
+      "capabilities": {
+        "response_semantics": {
+          "data_path": "$",
+          "static_template": {
+            "$schema": "http://adaptivecards.io/schemas/adaptive-card.json",
+            "type": "AdaptiveCard",
+            "version": "1.5",
+            "body": [
+              {
+                "type": "TextBlock",
+                "text": "🎙️ Podcast Queued",
+                "weight": "Bolder",
+                "size": "Large"
+              },
+              {
+                "type": "TextBlock",
+                "text": "**URL:** ${url}",
+                "wrap": true
+              },
+              {
+                "type": "TextBlock",
+                "text": "**Job ID:** ${id}",
+                "wrap": true
+              },
+              {
+                "type": "TextBlock",
+                "text": "**Status:** ${status}",
+                "color": "Accent"
+              }
+            ]
+          }
+        }
+      }
+    },
+    {
+      "name": "getJobStatus",
+      "description": "Check the status of a podcast generation job. Returns status, and audio URL when complete.",
+      "capabilities": {
+        "response_semantics": {
+          "data_path": "$",
+          "static_template": {
+            "$schema": "http://adaptivecards.io/schemas/adaptive-card.json",
+            "type": "AdaptiveCard",
+            "version": "1.5",
+            "body": [
+              {
+                "type": "TextBlock",
+                "text": "🎙️ ${title}",
+                "weight": "Bolder",
+                "size": "Large",
+                "wrap": true
+              },
+              {
+                "type": "FactSet",
+                "facts": [
+                  { "title": "Status", "value": "${status}" },
+                  { "title": "Style", "value": "${style}" }
+                ]
+              },
+              {
+                "type": "TextBlock",
+                "text": "[▶️ Play / Download Podcast](${audio_url})",
+                "wrap": true,
+                "$when": "${audio_url != null && audio_url != ''}"
+              },
+              {
+                "type": "TextBlock",
+                "text": "⏳ Audio is still being generated…",
+                "wrap": true,
+                "isSubtle": true,
+                "$when": "${audio_url == null || audio_url == ''}"
+              }
+            ]
+          }
+        }
+      }
+    },
+    {
+      "name": "listRecentPodcasts",
+      "description": "List the user's recently generated podcasts.",
+      "capabilities": {
+        "response_semantics": {
+          "data_path": "$",
+          "static_template": {
+            "$schema": "http://adaptivecards.io/schemas/adaptive-card.json",
+            "type": "AdaptiveCard",
+            "version": "1.5",
+            "body": [
+              {
+                "type": "TextBlock",
+                "text": "🎧 Recent Podcasts",
+                "weight": "Bolder",
+                "size": "Large"
+              },
+              {
+                "type": "TextBlock",
+                "text": "Your recently generated podcast episodes:",
+                "wrap": true,
+                "isSubtle": true
+              }
+            ]
+          }
+        }
+      }
+    }
+  ],
+  "runtimes": [
+    {
+      "type": "OpenApi",
+      "auth": { "type": "OAuthPluginVault" },
+      "spec": { "url": "openapi.yaml" },
+      "run_for_functions": ["generatePodcast", "getJobStatus", "listRecentPodcasts"]
+    }
+  ]
+}
