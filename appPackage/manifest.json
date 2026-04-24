@@ -1,0 +1,40 @@
+{
+  "$schema": "https://developer.microsoft.com/en-us/json-schemas/teams/v1.19/MicrosoftTeams.schema.json",
+  "manifestVersion": "1.19",
+  "id": "${{TEAMS_APP_ID}}",
+  "version": "1.0.0",
+  "name": {
+    "short": "DocTalk",
+    "full": "DocTalk — Podcast Generator for Azure Docs"
+  },
+  "description": {
+    "short": "Generate podcast-style audio from Azure documentation",
+    "full": "DocTalk surfaces podcast generation capabilities inside Microsoft 365 Copilot. Paste an Azure docs URL and get an engaging audio episode — learn while you commute, exercise, or multitask. Powered by Azure OpenAI and Neural TTS."
+  },
+  "developer": {
+    "name": "DocTalk Team",
+    "websiteUrl": "https://github.com/rjayapra/DocTalk",
+    "privacyUrl": "https://github.com/rjayapra/DocTalk/blob/main/PRIVACY.md",
+    "termsOfUseUrl": "https://github.com/rjayapra/DocTalk/blob/main/TERMS.md"
+  },
+  "icons": {
+    "color": "color.png",
+    "outline": "outline.png"
+  },
+  "accentColor": "#6264A7",
+  "copilotAgents": {
+    "declarativeAgents": [
+      {
+        "id": "doctalkAgent",
+        "file": "declarativeAgent.json"
+      }
+    ]
+  },
+  "validDomains": [
+    "ca-doctalk-api-m4ydxz.thankfulwave-bd3e8cef.eastus2.azurecontainerapps.io"
+  ],
+  "webApplicationInfo": {
+    "id": "${{ENTRA_APP_ID}}",
+    "resource": "api://${{ENTRA_APP_ID}}"
+  }
+}

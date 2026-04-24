@@ -30,6 +30,10 @@ class Config:
     # Phase 2: App Insights
     APPLICATIONINSIGHTS_CONNECTION_STRING: str = os.getenv("APPLICATIONINSIGHTS_CONNECTION_STRING", "")
 
+    # Phase 3: Entra ID (OAuth 2.0)
+    ENTRA_APP_ID: str = os.getenv("ENTRA_APP_ID", "")
+    ENTRA_TENANT_ID: str = os.getenv("ENTRA_TENANT_ID", "")
+
     @classmethod
     def validate(cls) -> list[str]:
         errors = []

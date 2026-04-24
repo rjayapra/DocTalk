@@ -1,0 +1,159 @@
+openapi: 3.0.3
+info:
+  title: DocTalk API
+  description: >
+    Podcast generation service that converts web articles into audio podcasts.
+    Uses $ENTRA_TENANT_ID and $ENTRA_APP_ID placeholders for Azure Entra ID
+    (formerly Azure AD) configuration. Replace these with your tenant and
+    application IDs before deploying.
+  version: 2.1.0
+
+servers:
+  - url: https://ca-doctalk-api-m4ydxz.thankfulwave-bd3e8cef.eastus2.azurecontainerapps.io
+    description: Production — Azure Container Apps
+
+paths:
+  /generate:
+    post:
+      operationId: generatePodcast
+      summary: Submit a podcast generation job
+      description: >
+        Accepts a URL to a web article and an optional conversation style,
+        then queues an asynchronous podcast generation job. Returns the newly
+        created job with status 'queued' and a 202 Accepted response.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/GenerateRequest"
+      responses:
+        "202":
+          description: Job accepted and queued for processing.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/JobResponse"
+
+  /jobs/{job_id}:
+    get:
+      operationId: getJobStatus
+      summary: Get the status of a podcast job
+      description: >
+        Retrieves the current status and details of a previously submitted
+        podcast generation job identified by its unique job ID.
+      parameters:
+        - name: job_id
+          in: path
+          required: true
+          description: Unique identifier of the podcast generation job.
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Job details retrieved successfully.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/JobResponse"
+        "404":
+          description: Job not found.
+
+  /jobs:
+    get:
+      operationId: listRecentPodcasts
+      summary: List recent podcast jobs
+      description: >
+        Returns a list of the most recent podcast generation jobs, ordered
+        by creation time. Use the limit parameter to control how many results
+        are returned.
+      parameters:
+        - name: limit
+          in: query
+          required: false
+          description: Maximum number of jobs to return.
+          schema:
+            type: integer
+            default: 20
+      responses:
+        "200":
+          description: A list of recent podcast jobs.
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/JobResponse"
+
+security:
+  - oauth2: []
+
+components:
+  securitySchemes:
+    oauth2:
+      type: oauth2
+      description: >
+        Azure Entra ID (formerly Azure AD) OAuth 2.0 authorization code flow.
+        Replace $ENTRA_TENANT_ID with your Azure tenant ID and $ENTRA_APP_ID
+        with the application (client) ID registered in Entra ID.
+      flows:
+        authorizationCode:
+          authorizationUrl: https://login.microsoftonline.com/$ENTRA_TENANT_ID/oauth2/v2.0/authorize
+          tokenUrl: https://login.microsoftonline.com/$ENTRA_TENANT_ID/oauth2/v2.0/token
+          scopes:
+            api://$ENTRA_APP_ID/Podcasts.ReadWrite: Read and write podcast generation jobs.
+
+  schemas:
+    GenerateRequest:
+      type: object
+      required:
+        - url
+      properties:
+        url:
+          type: string
+          description: URL of the web article to convert into a podcast.
+        style:
+          type: string
+          description: Conversation style for the generated podcast.
+          enum:
+            - single
+            - conversation
+          default: conversation
+
+    JobResponse:
+      type: object
+      properties:
+        id:
+          type: string
+          description: Unique identifier for the job.
+        url:
+          type: string
+          description: Source URL that was submitted for podcast generation.
+        style:
+          type: string
+          description: Conversation style used for the podcast.
+        status:
+          type: string
+          description: Current processing status of the job.
+          enum:
+            - queued
+            - processing
+            - completed
+            - failed
+        title:
+          type: string
+          description: Title extracted from the source article.
+        audio_url:
+          type: string
+          description: URL of the generated audio file (available when completed).
+        error:
+          type: string
+          description: Error message if the job failed.
+        created_at:
+          type: string
+          format: date-time
+          description: ISO 8601 timestamp when the job was created.
+        updated_at:
+          type: string
+          format: date-time
+          description: ISO 8601 timestamp when the job was last updated.

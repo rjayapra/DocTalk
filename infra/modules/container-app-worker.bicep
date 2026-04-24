@@ -13,6 +13,7 @@ param queueName string
 param tableName string
 param containerName string
 param appInsightsConnectionString string
+param imageTag string = 'latest'
 
 // Get storage account key for KEDA queue scaling
 resource storageAccount 'Microsoft.Storage/storageAccounts@2023-05-01' existing = {
@@ -50,7 +51,7 @@ resource workerApp 'Microsoft.App/containerApps@2024-03-01' = {
       containers: [
         {
           name: 'worker'
-          image: '${registryLoginServer}/doctalk-worker:latest'
+          image: '${registryLoginServer}/doctalk-worker:${imageTag}'
           resources: {
             cpu: json('1')
             memory: '2Gi'

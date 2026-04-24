@@ -13,6 +13,9 @@ param queueName string
 param tableName string
 param containerName string
 param appInsightsConnectionString string
+param imageTag string = 'latest'
+param entraAppId string = ''
+param entraTenantId string = ''
 
 resource apiApp 'Microsoft.App/containerApps@2024-03-01' = {
   name: name
@@ -45,7 +48,7 @@ resource apiApp 'Microsoft.App/containerApps@2024-03-01' = {
       containers: [
         {
           name: 'api'
-          image: '${registryLoginServer}/doctalk-api:latest'
+          image: '${registryLoginServer}/doctalk-api:${imageTag}'
           resources: {
             cpu: json('0.5')
             memory: '1Gi'
@@ -60,6 +63,8 @@ resource apiApp 'Microsoft.App/containerApps@2024-03-01' = {
             { name: 'AZURE_STORAGE_CONTAINER_NAME', value: containerName }
             { name: 'AZURE_STORAGE_QUEUE_NAME', value: queueName }
             { name: 'AZURE_STORAGE_TABLE_NAME', value: tableName }
+            { name: 'ENTRA_APP_ID', value: entraAppId }
+            { name: 'ENTRA_TENANT_ID', value: entraTenantId }
             { name: 'APPLICATIONINSIGHTS_CONNECTION_STRING', value: appInsightsConnectionString }
           ]
         }

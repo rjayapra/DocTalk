@@ -109,24 +109,24 @@ Generate Options:
 
 DocTalk is deployed as a cloud API on Azure Container Apps with async job processing.
 
-**API Endpoint:** `https://ca-doctalk-api-mkffp6.wittyfield-14310482.eastus2.azurecontainerapps.io`
+**API Endpoint:** `https://ca-doctalk-api-m4ydxz.thankfulwave-bd3e8cef.eastus2.azurecontainerapps.io`
 
 ### API Usage
 
 ```bash
 # Submit a podcast generation job
-curl -X POST https://ca-doctalk-api-mkffp6.wittyfield-14310482.eastus2.azurecontainerapps.io/generate \
+curl -X POST https://ca-doctalk-api-m4ydxz.thankfulwave-bd3e8cef.eastus2.azurecontainerapps.io/generate \
   -H "Content-Type: application/json" \
   -d '{"url": "https://learn.microsoft.com/azure/container-apps/overview"}'
 
 # Poll job status
-curl https://ca-doctalk-api-mkffp6.wittyfield-14310482.eastus2.azurecontainerapps.io/jobs/{job_id}
+curl https://ca-doctalk-api-m4ydxz.thankfulwave-bd3e8cef.eastus2.azurecontainerapps.io/jobs/{job_id}
 
 # List all jobs
-curl https://ca-doctalk-api-mkffp6.wittyfield-14310482.eastus2.azurecontainerapps.io/jobs
+curl https://ca-doctalk-api-m4ydxz.thankfulwave-bd3e8cef.eastus2.azurecontainerapps.io/jobs
 
 # Health check
-curl https://ca-doctalk-api-mkffp6.wittyfield-14310482.eastus2.azurecontainerapps.io/health
+curl https://ca-doctalk-api-m4ydxz.thankfulwave-bd3e8cef.eastus2.azurecontainerapps.io/health
 ```
 
 ---

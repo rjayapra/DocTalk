@@ -1,3 +1,7 @@
+# Azure Developer CLI — environment-specific values (contains secrets)
+.env
+.azure/
+
 # Squad: ignore runtime state (logs, inbox, sessions)
 .squad/orchestration-log/
 .squad/log/
@@ -5,3 +9,9 @@
 .squad/sessions/
 # Squad: SubSquad activation file (local to this machine)
 .squad-workstream
+
+# Python
+**/__pycache__/
+*.pyc
+.venv/
+.pytest_cache/

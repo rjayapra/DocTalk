@@ -1,7 +1,9 @@
 """DocTalk FastAPI API — podcast generation service."""
 import json
 from datetime import datetime, timezone
-from fastapi import FastAPI, HTTPException
+from typing import Any
+
+from fastapi import Depends, FastAPI, HTTPException
 from pydantic import BaseModel, HttpUrl
 from azure.data.tables import TableServiceClient
 from azure.storage.queue import QueueClient
@@ -10,6 +12,8 @@ import base64
 
 from ..config import Config
 from ..core.models import Job, JobStatus, QueueMessage
+from .blob_utils import add_sas_to_url
+from .auth import get_current_user
 
 app = FastAPI(title="DocTalk API", version="2.0.0")
 credential = DefaultAzureCredential()
@@ -49,7 +53,7 @@ async def health():
 
 
 @app.post("/generate", response_model=JobResponse, status_code=202)
-async def generate(request: GenerateRequest):
+async def generate(request: GenerateRequest, user: dict[str, Any] | None = Depends(get_current_user)):
     """Submit a podcast generation job."""
     job = Job(url=request.url, style=request.style)
 
@@ -69,7 +73,7 @@ async def generate(request: GenerateRequest):
 
 
 @app.get("/jobs/{job_id}", response_model=JobResponse)
-async def get_job(job_id: str):
+async def get_job(job_id: str, user: dict[str, Any] | None = Depends(get_current_user)):
     """Get job status and details."""
     table = _get_table_client()
     try:
@@ -81,7 +85,7 @@ async def get_job(job_id: str):
 
 
 @app.get("/jobs", response_model=list[JobResponse])
-async def list_jobs(limit: int = 20):
+async def list_jobs(limit: int = 20, user: dict[str, Any] | None = Depends(get_current_user)):
     """List recent jobs."""
     table = _get_table_client()
     entities = table.query_entities(
@@ -103,7 +107,7 @@ def _job_to_response(job: Job) -> JobResponse:
         style=job.style,
         status=job.status.value,
         title=job.title,
-        audio_url=job.audio_url,
+        audio_url=add_sas_to_url(job.audio_url, Config.AZURE_STORAGE_ACCOUNT_NAME),
         error=job.error,
         created_at=job.created_at,
         updated_at=job.updated_at,
