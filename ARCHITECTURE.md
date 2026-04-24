@@ -59,7 +59,7 @@ flowchart TB
     CLI -->|POST /generate| API
     WEB -->|POST /generate| API
     TEAMS -->|Bot message| API
-    COPILOT -->|POST / (agent)| API
+    COPILOT -->|"POST / (agent)"| API
     API -->|Enqueue job| QUEUE
     API -->|Create job record| TABLE
     QUEUE -->|Dequeue| WORKER
