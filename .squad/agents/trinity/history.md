@@ -38,3 +38,20 @@ Created `appPackage/openapi.yaml` (OpenAPI 3.0.3):
 
 - **JobResponse shape**: The API returns 9 string fields (id, url, style, status, title, audio_url, error, created_at, updated_at). The `status` field uses the JobStatus enum (queued, processing, completed, failed). Keep the OpenAPI spec in sync with `src/api/main.py:JobResponse` and `src/core/models.py:Job`.
 - **Entra ID placeholders**: Use `$ENTRA_TENANT_ID` and `$ENTRA_APP_ID` as literal placeholders in OpenAPI auth URLs — these get replaced at deployment time.
+
+## 2025-07-25 — Task #13: OAuth Middleware Added to FastAPI
+
+Created `src/api/auth.py` with Entra ID JWT validation using PyJWT + cryptography:
+- **JWKS caching**: Fetches keys from `login.microsoftonline.com/{tenant}/discovery/v2.0/keys` with 1-hour TTL. Automatic cache refresh on kid miss (handles key rotation).
+- **Token validation**: Checks RS256 signature, issuer (`https://login.microsoftonline.com/{tenant}/v2.0`), audience (`api://{app-id}`), expiry, and required claims (oid).
+- **`get_current_user` dependency**: Extracts oid, name, email from validated token. Returns user claims dict.
+- **Local dev bypass**: When `ENTRA_APP_ID` is empty, auth is skipped entirely — dependency returns `None`.
+- Applied to `POST /generate`, `GET /jobs/{job_id}`, `GET /jobs`. `GET /health` remains public.
+- Added `ENTRA_APP_ID` and `ENTRA_TENANT_ID` to `src/config.py`.
+- Added `PyJWT[crypto]` to `requirements.txt`.
+
+## Learnings
+
+- **PyJWT vs python-jose**: PyJWT with `[crypto]` extra (includes cryptography) is lighter and better maintained than python-jose. Use `jwt.algorithms.RSAAlgorithm.from_jwk()` to convert JWKS JSON to public key objects.
+- **JWKS key rotation**: Always attempt a cache refresh when a kid is not found before returning 401 — Entra ID rotates signing keys periodically.
+- **Auth bypass pattern**: Using `HTTPBearer(auto_error=False)` + checking config at the top of the dependency is the cleanest way to make auth optional for local dev without conditional route registration.
