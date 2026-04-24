@@ -135,10 +135,102 @@ az containerapp ingress update --name doctalk-api --resource-group doctalk-rg --
 
 ---
 
+---
+
+## 2026-04-24: Web Frontend Integration Architecture (Phase 2)
+
+**By:** Morpheus (Lead/Architect)
+
+**Context:** DocTalk needs a web-based frontend so users can generate and consume podcasts from a browser. The FastAPI API is production-ready but lacks a user interface.
+
+**Decision:**
+1. Serve static files from FastAPI using StaticFiles mount at `/app` route
+2. Use vanilla HTML/CSS/JavaScript with no frameworks or build tools
+3. Audio playback via native HTML5 `<audio>` element with SAS URLs from Blob Storage
+4. Job polling strategy: JavaScript setInterval at 2-second intervals
+
+**Rationale:**
+- **StaticFiles mounting:** Single ACA container handles both API and UI; no separate web server needed
+- **Vanilla JS:** No build step, zero Node.js dependency, ~10 KB total webapp code
+- **HTML5 audio:** Native browser support, CORS-configured on Blob Storage if needed
+- **Polling:** Simple, stateless, fault-tolerant; no WebSocket/SSE needed for web UI
+
+**Route Structure:**
+- `/app` → serves `index.html`
+- `/app/*` → serves CSS, JS, images, favicon
+- `/generate`, `/jobs/{id}` → API endpoints (unchanged)
+
+**File Structure:**
+```
+src/webapp/
+├── index.html         # Form + status display + audio player
+├── style.css          # Responsive layout, WCAG accessibility
+├── app.js             # Form handling, polling, DOM updates
+└── favicon.ico
+```
+
+**Deployment:** Docker build copies `src/webapp/` into container; FastAPI mounts at runtime.
+
+**Limitations & Future Work:**
+- No job history (future: localStorage)
+- No real-time updates (future: SSE/WebSocket)
+- No authentication (future: Entra ID)
+
+**Files:**
+- `src/webapp/index.html`, `style.css`, `app.js` — main webapp
+- `ARCHITECTURE.md` — updated with Phase 2 section
+
+---
+
+## 2026-04-24: Vanilla JavaScript Frontend (No Build Tools)
+
+**By:** Mouse (Frontend Developer)
+
+**Date:** 2026-04-24
+
+**Status:** Adopted
+
+**Context:** Need a web interface for DocTalk that allows users to generate podcasts from Azure docs URLs and listen to them in the browser.
+
+**Decision:** Build the webapp using vanilla HTML/CSS/JavaScript with NO frameworks, NO build tools, and NO Node.js dependencies.
+
+**Rationale:**
+- **Simplicity:** No build pipeline to maintain, debug, or deploy
+- **Performance:** Zero bundle overhead, instant page loads
+- **Deployment:** Direct file serving via FastAPI StaticFiles mount
+- **Team alignment:** Backend team uses Python; avoiding frontend toolchain complexity
+- **Browser support:** Modern JavaScript APIs (fetch, async/await, CSS variables) are universally supported
+
+**Implementation Details:**
+- Files location: `src/webapp/` (index.html, style.css, app.js)
+- API calls: Same-origin fetch to `/generate`, `/jobs/{id}`, `/jobs`
+- Job polling: setInterval with 3-second intervals
+- Audio playback: HTML5 `<audio>` element with Azure Blob SAS URLs
+- Dark mode: CSS `prefers-color-scheme` media query
+
+**Alternatives Considered:**
+- **React SPA:** Rejected — adds build complexity, npm dependencies, deployment overhead
+- **Server-side templates:** Rejected — reduces interactivity, requires page reloads for polling
+- **Alpine.js/htmx:** Rejected — even lightweight frameworks add unnecessary abstraction for this simple use case
+
+**Consequences:**
+- ✅ Faster initial development and iteration
+- ✅ No build failures or dependency conflicts
+- ✅ Easy for backend developers to contribute frontend fixes
+- ❌ Manual DOM manipulation (acceptable for small app)
+- ❌ No component reusability (not needed for single-page app)
+
+**Tags:** `frontend` `architecture` `tooling` `deployment`
+
+---
+
 ## Key Architectural Themes
 
 ### API-First, Copilot Extension Second
 The main DocTalk API (`/generate`, `/jobs/{id}`) is the source of truth. The Copilot Extension is a thin SSE wrapper that polls and streams. This keeps infra simple and allows non-Copilot clients (mobile, web, CLI) to work independently.
+
+### Web UI: Same-Origin Polling
+The web UI is served from the same ACA container as the API, enabling simple same-origin fetch calls with no CORS complexity. Job polling uses a 2-3 second interval for interactive UX.
 
 ### Hackathon Mode vs. Production Mode
 Current state: minimal auth (header-presence only). Post-hackathon: implement JWT validation, increase ACA timeouts, add rate limiting.

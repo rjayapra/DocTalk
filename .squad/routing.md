@@ -6,12 +6,12 @@ How to decide who handles what.
 
 | Work Type | Route To | Examples |
 |-----------|----------|----------|
-| {domain 1} | {Name} | {example tasks} |
-| {domain 2} | {Name} | {example tasks} |
-| {domain 3} | {Name} | {example tasks} |
-| Code review | {Name} | Review PRs, check quality, suggest improvements |
-| Testing | {Name} | Write tests, find edge cases, verify fixes |
-| Scope & priorities | {Name} | What to build next, trade-offs, decisions |
+| Frontend / UI / Webapp | Mouse | Build web pages, audio player, forms, CSS, JS |
+| Backend / API / Worker | Trinity | FastAPI endpoints, queue processing, data models |
+| Infra / DevOps / Azure | Tank | Bicep, ACA config, deployment, DNS, CDN |
+| Code review | Morpheus | Review PRs, check quality, suggest improvements |
+| Testing | Switch | Write tests, find edge cases, verify fixes |
+| Scope & priorities | Morpheus | What to build next, trade-offs, decisions |
 | Session logging | Scribe | Automatic — never needs routing |
 
 ## Issue Routing

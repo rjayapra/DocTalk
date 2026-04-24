@@ -2,6 +2,30 @@
 
 ## Learnings
 
+### 2026-04-24 — Web Frontend Integration Architecture (Phase 2)
+
+- **Serving strategy:** FastAPI StaticFiles mount at `/app` — single container serves both API and webapp, no separate infrastructure.
+- **Frontend tech:** Vanilla HTML/CSS/JS (no React/build tooling) keeps it lightweight (~10 KB) and eliminates Node.js dependency in Docker image.
+- **Audio playback:** Use native HTML5 `<audio>` element with SAS URLs from `audio_url` field in job response — built-in controls, no plugin needed.
+- **Job polling:** JavaScript `setInterval` at 2-second intervals on `GET /jobs/{job_id}` — simple, stateless, fault-tolerant; scales linearly with user count.
+- **File structure:** `src/webapp/index.html`, `src/webapp/style.css`, `src/webapp/app.js`, `src/webapp/favicon.ico` — minimal, no build step required.
+- **Route structure:** `/app` serves static files, `/generate`, `/jobs/{id}`, `/health` for API — no route conflicts.
+- **Design rationale:** Simplicity wins for MVP. Vanilla JS suitable for single-page form-driven UX (submit URL → poll status → play audio). No real-time requirements yet (2s polling acceptable).
+- **Decision document:** Created `.squad/decisions/decisions.md` (merged from inbox) with full design, file structure templates, deployment notes, and future enhancement roadmap.
+- **Updated ARCHITECTURE.md:** Phase 2 now lists Web as a client channel; Mermaid diagram includes Web client with POST /generate and GET /jobs/id arrows; phase table updated.
+
+### 2026-04-25 — Web Frontend Integration Architecture (Phase 2)
+
+- **Serving strategy:** FastAPI StaticFiles mount at `/app` — single container serves both API and webapp, no separate infrastructure.
+- **Frontend tech:** Vanilla HTML/CSS/JS (no React/build tooling) keeps it lightweight (~10 KB) and eliminates Node.js dependency in Docker image.
+- **Audio playback:** Use native HTML5 `<audio>` element with SAS URLs from `audio_url` field in job response — built-in controls, no plugin needed.
+- **Job polling:** JavaScript `setInterval` at 2-second intervals on `GET /jobs/{job_id}` — simple, stateless, fault-tolerant; scales linearly with user count.
+- **File structure:** `src/webapp/index.html`, `src/webapp/style.css`, `src/webapp/app.js`, `src/webapp/favicon.ico` — minimal, no build step required.
+- **Route structure:** `/app` serves static files, `/generate`, `/jobs/{id}`, `/health` for API — no route conflicts.
+- **Design rationale:** Simplicity wins for MVP. Vanilla JS suitable for single-page form-driven UX (submit URL → poll status → play audio). No real-time requirements yet (2s polling acceptable).
+- **Decision document:** Created `.squad/decisions/inbox/morpheus-webapp-architecture.md` with full design, file structure templates, deployment notes, and future enhancement roadmap.
+- **Updated ARCHITECTURE.md:** Phase 2 now lists Web as a client channel; Mermaid diagram includes Web client with POST /generate and GET /jobs/id arrows; phase table updated.
+
 ### 2026-04-24 — Copilot Extension Setup Guide (Hackathon)
 
 - Created comprehensive **COPILOT-EXTENSION-SETUP.md** as a practical, step-by-step guide for hackathon participants.

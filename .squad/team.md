@@ -15,6 +15,7 @@
 | Morpheus | Lead | .squad/agents/morpheus/charter.md | 🏗️ Active |
 | Trinity | Backend Dev | .squad/agents/trinity/charter.md | 🔧 Active |
 | Tank | Infra/DevOps | .squad/agents/tank/charter.md | ⚙️ Active |
+| Mouse | Frontend Dev | .squad/agents/mouse/charter.md | ⚛️ Active |
 | Switch | Tester | .squad/agents/switch/charter.md | 🧪 Active |
 | Scribe | Scribe | .squad/agents/scribe/charter.md | 📋 Active |
 | Ralph | Work Monitor | — | 🔄 Monitor |

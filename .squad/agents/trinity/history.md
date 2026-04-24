@@ -2,6 +2,20 @@
 
 ## Learnings
 
+### 2026-04-24 — Static File Serving and Root Redirect
+
+- **Purpose:** Serve the webapp from the same FastAPI container to eliminate need for separate frontend hosting.
+- **Changes made:** 
+  - Added `StaticFiles`, `RedirectResponse`, `FileResponse`, `Path` imports.
+  - Added CORS middleware to allow webapp to call API endpoints (allow all origins for hackathon scope).
+  - Added root `/` redirect to `/app/index.html` for UX (user navigates to base URL, gets webapp).
+  - Mounted `/app` path to serve `src/webapp/` directory with `html=True` for index.html fallback.
+- **Critical ordering:** Static mount MUST come after all API route definitions to avoid shadowing API endpoints.
+- **Defensive coding:** Added `if webapp_dir.exists()` guard to prevent crashes when webapp directory is not present (dev scenarios).
+- **Docker compatibility:** Existing `Dockerfile.api` already copies entire `src/` tree, so `src/webapp/` is automatically included.
+- **File location:** `src/api/main.py` — webapp files live at `src/webapp/` and are accessed via `/app/*` endpoint.
+- **Integration complete:** Webapp now fully integrated; users can navigate to base URL and access the complete web UI.
+
 ### 2025-07-17 — Copilot Extension Endpoint
 - Added `src/api/copilot.py` with a `POST /copilot/agent` SSE-streaming endpoint and `GET /copilot/agent` discovery metadata endpoint.
 - Wired the router into `src/api/main.py` via `include_router`.
@@ -19,3 +33,4 @@
 - **Better timeout UX**: Changed timeout message to explain the job is still running in background and provide the job ID + API endpoint for manual status checks.
 - **Production note**: Added comment in module docstring about increasing ACA ingress timeout to 600s via `az containerapp ingress update --timeout 600`.
 - **Key insight**: SSE keep-alive is critical for long-running jobs behind proxies — even with proper ingress timeouts, the connection needs regular heartbeats to stay alive.
+
