@@ -18,15 +18,15 @@ services:
       remoteBuild: true
 hooks:
   postprovision:
-    shell: pwsh
+    shell: sh
     run: |
-      Write-Host "Setting Entra ID Application ID URI..."
-      if ($env:ENTRA_APP_ID) {
-        az ad app update --id $env:ENTRA_APP_ID --identifier-uris "api://$env:ENTRA_APP_ID"
-        Write-Host "Application ID URI set to api://$env:ENTRA_APP_ID"
-      } else {
-        Write-Host "ENTRA_APP_ID not set — skipping Application ID URI configuration"
-      }
-      Write-Host "Building images with az acr build (no local Docker needed)..."
-      az acr build --registry $env:AZURE_CONTAINER_REGISTRY_NAME --image "doctalk-api:$env:AZURE_ENV_NAME" --file Dockerfile.api .
-      az acr build --registry $env:AZURE_CONTAINER_REGISTRY_NAME --image "doctalk-worker:$env:AZURE_ENV_NAME" --file Dockerfile.worker .
+      echo "Setting Entra ID Application ID URI..."
+      if [ -n "$ENTRA_APP_ID" ]; then
+        az ad app update --id "$ENTRA_APP_ID" --identifier-uris "api://$ENTRA_APP_ID"
+        echo "Application ID URI set to api://$ENTRA_APP_ID"
+      else
+        echo "ENTRA_APP_ID not set — skipping Application ID URI configuration"
+      fi
+      echo "Building images with az acr build (no local Docker needed)..."
+      az acr build --registry "$AZURE_CONTAINER_REGISTRY_NAME" --image "doctalk-api:$AZURE_ENV_NAME" --file Dockerfile.api .
+      az acr build --registry "$AZURE_CONTAINER_REGISTRY_NAME" --image "doctalk-worker:$AZURE_ENV_NAME" --file Dockerfile.worker .

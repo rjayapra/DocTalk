@@ -1,5 +1,3 @@
-extension microsoftGraphV1
-
 targetScope = 'subscription'
 
 @minLength(1)
@@ -14,6 +12,12 @@ param openAiModelVersion string = '2025-11-13'
 param openAiDeploymentCapacity int = 10
 param queueName string = 'podcast-jobs'
 param tableName string = 'podcastjobs'
+
+@description('Entra ID Application (client) ID — set via azd env or postprovision script')
+param entraAppId string = ''
+
+@description('Entra ID Tenant ID — defaults to current tenant')
+param entraTenantId string = ''
 
 var resourceSuffix = take(uniqueString(subscription().id, environmentName, location), 6)
 var tags = { 'azd-env-name': environmentName }
@@ -116,14 +120,6 @@ module identity './modules/identity.bicep' = {
   }
 }
 
-module entraApp './modules/entra-app.bicep' = {
-  name: 'entraApp'
-  scope: rg
-  params: {
-    appDisplayName: 'DocTalk API'
-  }
-}
-
 module apiApp './modules/container-app-api.bicep' = {
   name: 'apiApp'
   scope: rg
@@ -144,8 +140,8 @@ module apiApp './modules/container-app-api.bicep' = {
     containerName: storage.outputs.containerName
     appInsightsConnectionString: monitoring.outputs.applicationInsightsConnectionString
     imageTag: environmentName
-    entraAppId: entraApp.outputs.appId
-    entraTenantId: tenant().tenantId
+    entraAppId: entraAppId
+    entraTenantId: entraTenantId != '' ? entraTenantId : tenant().tenantId
   }
 }
 
@@ -187,5 +183,5 @@ output AZURE_CONTAINER_APP_ENV_NAME string = containerAppEnv.outputs.name
 output DOCTALK_API_URL string = 'https://${apiApp.outputs.fqdn}'
 output AZURE_STORAGE_QUEUE_NAME string = queueName
 output AZURE_STORAGE_TABLE_NAME string = tableName
-output ENTRA_APP_ID string = entraApp.outputs.appId
-output ENTRA_TENANT_ID string = tenant().tenantId
+output ENTRA_APP_ID string = entraAppId
+output ENTRA_TENANT_ID string = entraTenantId != '' ? entraTenantId : tenant().tenantId
