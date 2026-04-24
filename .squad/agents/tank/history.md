@@ -84,3 +84,19 @@ A comprehensive 39-task UI build plan has been created spanning 3 phases. Tank h
 - When auth is `"none"`, remove `webApplicationInfo` from `manifest.json`
 - When auth is `"none"`, remove `security` and `components.securitySchemes` from OpenAPI spec
 - OpenAPI spec `servers[0].url` must match actual deployed API URL (not placeholder)
+
+## 2026-04-24 — AAD Lifecycle Integration Complete
+
+### Changes Made
+- Created `appPackage/aad.manifest.json` — Entra ID app manifest with `Podcasts.ReadWrite` scope, v2 token, Teams redirect URI
+- Rewrote `teamsapp.yml` — added `aadApp/create` + `aadApp/update` to provision, added `deploy` section, generated real projectId (`5e4ba15d-00fd-44f7-b5bd-9de9eb9fca6c`)
+- Updated `env/.env.dev` — switched from `ENTRA_APP_ID`/`ENTRA_TENANT_ID` to TTK-standard `AAD_APP_CLIENT_ID`/`AAD_APP_OBJECT_ID`/`AAD_APP_TENANT_ID`/`SECRET_AAD_APP_CLIENT_SECRET`, added `DOCTALK_API_DOMAIN` and `DOCTALK_API_URL`
+- Updated `infra/scripts/register-entra-app.sh` — added TTK note, renamed output vars to `AAD_APP_CLIENT_ID`/`AAD_APP_TENANT_ID`
+- Documented all decisions in `.squad/decisions.md` (AAD Lifecycle, TTK Variable Naming Standard, User Directive to retain OAuth)
+
+### Learnings
+- TTK `aadApp/create` writes to env file using keys: `clientId`, `objectId`, `tenantId`, `clientSecret` (mapped to custom env var names)
+- TTK `aadApp/update` reads from `aad.manifest.json` and interpolates `${{VAR}}` placeholders at provision time
+- The `deploy` section in `teamsapp.yml` is valid (and needed) for re-packaging and uploading manifest changes without re-provisioning Entra/Teams app
+- Variable naming convention: TTK uses `AAD_APP_*` prefix, not `ENTRA_*` — all files must be consistent
+- Real projectId must be a valid UUID for idempotent Graph resource deployments

@@ -138,6 +138,75 @@
 - `/health` remains public
 - No changes to existing response shapes or behavior
 
+### Decision: User Directive — Retain OAuth/Entra ID Authentication
+
+**Date:** 2026-04-24T20:54
+**Author:** Lucus Crawford (via Copilot)
+**Status:** Active
+
+**Context:** Earlier discussion raised simplifying Wave 1 by removing OAuth and Entra ID authentication. User clarified that OAuth should be retained in the implementation.
+
+**Decision:**
+- DO NOT remove OAuth authentication
+- Keep Entra ID auth in the Teams app manifest and API plugin config
+- Maintain the OAuth 2.0 authorization code flow for M365 Copilot → DocTalk API
+
+**Impact:**
+- Tank and Trinity work ensures `aad.manifest.json`, `teamsapp.yml`, `manifest.json`, and `openapi.yaml` all support OAuth
+- API endpoints must validate JWT tokens from Entra ID
+- Users must authenticate via M365 identity to use the Copilot agent
+
+---
+
+### Decision: AAD Lifecycle in teamsapp.yml
+
+**Date:** 2026-04-24T21:11
+**Author:** Tank (Infrastructure / DevOps)
+**Status:** Implemented
+
+**Context:** M365 Copilot agent deployment was blocked because `teamsapp.yml` lacked `aadApp/create` and `aadApp/update` lifecycle steps. Without these, `teamsapp provision` couldn't manage the Entra app registration needed for OAuth.
+
+**Decision:**
+- Added `aadApp/create` as the first provision step — Teams Toolkit now manages Entra app registration automatically
+- Created `appPackage/aad.manifest.json` for `aadApp/update` to configure scopes (`Podcasts.ReadWrite`) and Teams redirect URI
+- Standardized all env vars to TTK convention (`AAD_APP_CLIENT_ID`, `AAD_APP_OBJECT_ID`, `AAD_APP_TENANT_ID`, `SECRET_AAD_APP_CLIENT_SECRET`)
+- Added `deploy` section for manifest-only updates without full re-provision
+- Generated real projectId (`5e4ba15d-00fd-44f7-b5bd-9de9eb9fca6c`) for idempotent Graph resource deployments
+
+**Impact:**
+- `manifest.json` must use `${{AAD_APP_CLIENT_ID}}` (not legacy `${{ENTRA_APP_ID}}`)
+- `openapi.yaml` OAuth config must reference `${{AAD_APP_CLIENT_ID}}` and `${{AAD_APP_TENANT_ID}}`
+- Old `ENTRA_CLIENT_ID` / `ENTRA_TENANT_ID` vars are deprecated
+- `teamsapp provision` now fully manages the Entra app registration lifecycle
+
+---
+
+### Decision: TTK Variable Naming Standard — AAD_APP_* Prefix
+
+**Date:** 2026-04-24T21:11
+**Author:** Trinity (Backend Developer)
+**Status:** Implemented
+
+**Context:** `manifest.json` and `openapi.yaml` used inconsistent placeholder names (`ENTRA_APP_ID`, `ENTRA_TENANT_ID`) that Teams Toolkit does not natively output. TTK's `aadApp/create` action outputs `clientId`, `objectId`, `tenantId`, `clientSecret` mapped to env vars with the `AAD_APP_*` prefix.
+
+**Decision:**
+- All appPackage placeholders now use TTK `${{VAR_NAME}}` interpolation syntax (not shell `$VAR`)
+- Variable names align with TTK standard outputs:
+  - `AAD_APP_CLIENT_ID` (mapped from `aadApp/create` clientId output)
+  - `AAD_APP_OBJECT_ID` (mapped from `aadApp/create` objectId output)
+  - `AAD_APP_TENANT_ID` (mapped from `aadApp/create` tenantId output)
+  - `SECRET_AAD_APP_CLIENT_SECRET` (mapped from `aadApp/create` clientSecret output)
+  - `DOCTALK_API_DOMAIN` (API hostname for manifest validDomains)
+  - `DOCTALK_API_URL` (full API URL for openapi.yaml servers)
+- Legacy `ENTRA_*` variable names are no longer used
+
+**Impact:**
+- `manifest.json` webApplicationInfo.clientId: `${{AAD_APP_CLIENT_ID}}`
+- `openapi.yaml` OAuth2 authorizationUrl: `https://login.microsoftonline.com/${{AAD_APP_TENANT_ID}}/oauth2/v2.0/authorize`
+- `openapi.yaml` scope: `api://${{AAD_APP_CLIENT_ID}}/Podcasts.ReadWrite`
+- `env/.env.dev` must define all six variables
+- Any future appPackage files must follow this convention
+
 ## Governance
 
 - All meaningful changes require team consensus

@@ -25,33 +25,19 @@ Added `src/api/blob_utils.py` with `add_sas_to_url()` helper that generates user
 - **User delegation SAS**: Use `BlobServiceClient.get_user_delegation_key()` + `generate_blob_sas()` for keyless SAS generation. Requires `Storage Blob Delegator` role on the managed identity.
 - **Graceful fallback**: SAS generation should never break the API — catch all exceptions and return the raw URL if signing fails. This prevents auth issues from cascading into 500 errors.
 
-## 2025-07-25 — Tasks #4–#7: OpenAPI Spec Created & Validated
+## 2026-04-24 — TTK Variable Standardization Complete
 
-Created `appPackage/openapi.yaml` (OpenAPI 3.0.3):
-- **Info**: DocTalk API v2.1.0 with production server URL.
-- **Schemas**: `JobResponse` (9 fields matching `src/api/main.py` exactly: id, url, style, status, title, audio_url, error, created_at, updated_at) and `GenerateRequest` (url required, style optional with enum [single, conversation]).
-- **Paths**: POST /generate (generatePodcast, 202), GET /jobs/{job_id} (getJobStatus, 200/404), GET /jobs (listRecentPodcasts, 200 array). All operations have human-readable summary + description for Copilot NLU.
-- **Security**: OAuth2 authorizationCode flow with `$ENTRA_TENANT_ID` and `$ENTRA_APP_ID` placeholders. Scope: `api://$ENTRA_APP_ID/Podcasts.ReadWrite`. Top-level security block requires oauth2.
-- **Validation**: YAML parses cleanly, all $ref pointers resolve, operationIds match plugin expectations.
+### Changes Made
+- Updated `manifest.json` — changed `webApplicationInfo.clientId` from `${{ENTRA_APP_ID}}` to `${{AAD_APP_CLIENT_ID}}`
+- Updated `openapi.yaml` — changed all OAuth2 references:
+  - authorizationUrl: `${{ENTRA_TENANT_ID}}` → `${{AAD_APP_TENANT_ID}}`
+  - scope: `api://${{ENTRA_APP_ID}}/Podcasts.ReadWrite` → `api://${{AAD_APP_CLIENT_ID}}/Podcasts.ReadWrite`
+  - clientId: `${{ENTRA_APP_ID}}` → `${{AAD_APP_CLIENT_ID}}`
+- Verified server URL uses `${{DOCTALK_API_URL}}` for proper per-environment interpolation
+- Documented decision in `.squad/decisions.md` (TTK Variable Naming Standard)
 
-## Learnings
-
-- **JobResponse shape**: The API returns 9 string fields (id, url, style, status, title, audio_url, error, created_at, updated_at). The `status` field uses the JobStatus enum (queued, processing, completed, failed). Keep the OpenAPI spec in sync with `src/api/main.py:JobResponse` and `src/core/models.py:Job`.
-- **Entra ID placeholders**: Use `$ENTRA_TENANT_ID` and `$ENTRA_APP_ID` as literal placeholders in OpenAPI auth URLs — these get replaced at deployment time.
-
-## 2025-07-25 — Task #13: OAuth Middleware Added to FastAPI
-
-Created `src/api/auth.py` with Entra ID JWT validation using PyJWT + cryptography:
-- **JWKS caching**: Fetches keys from `login.microsoftonline.com/{tenant}/discovery/v2.0/keys` with 1-hour TTL. Automatic cache refresh on kid miss (handles key rotation).
-- **Token validation**: Checks RS256 signature, issuer (`https://login.microsoftonline.com/{tenant}/v2.0`), audience (`api://{app-id}`), expiry, and required claims (oid).
-- **`get_current_user` dependency**: Extracts oid, name, email from validated token. Returns user claims dict.
-- **Local dev bypass**: When `ENTRA_APP_ID` is empty, auth is skipped entirely — dependency returns `None`.
-- Applied to `POST /generate`, `GET /jobs/{job_id}`, `GET /jobs`. `GET /health` remains public.
-- Added `ENTRA_APP_ID` and `ENTRA_TENANT_ID` to `src/config.py`.
-- Added `PyJWT[crypto]` to `requirements.txt`.
-
-## Learnings
-
-- **PyJWT vs python-jose**: PyJWT with `[crypto]` extra (includes cryptography) is lighter and better maintained than python-jose. Use `jwt.algorithms.RSAAlgorithm.from_jwk()` to convert JWKS JSON to public key objects.
-- **JWKS key rotation**: Always attempt a cache refresh when a kid is not found before returning 401 — Entra ID rotates signing keys periodically.
-- **Auth bypass pattern**: Using `HTTPBearer(auto_error=False)` + checking config at the top of the dependency is the cleanest way to make auth optional for local dev without conditional route registration.
+### Learnings
+- TTK variable names: `AAD_APP_CLIENT_ID`, `AAD_APP_TENANT_ID` (not legacy `ENTRA_*` names)
+- All appPackage placeholders must use `${{VAR_NAME}}` syntax — TTK only processes this format
+- Variable consistency across files is critical: manifest → openapi → teamsapp.yml must all reference same vars
+- Tank's `aadApp/create` action now outputs the standard TTK env vars that these files reference
