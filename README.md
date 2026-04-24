@@ -16,6 +16,7 @@ Convert Azure documentation pages into engaging podcast-style audio — on-the-g
 | 🔊 **Multi-voice SSML** | Two distinct voices for conversational mode with automatic voice-switching |
 | 📝 **Script preview** | Generate and review scripts before audio synthesis (`--script-only`) |
 | 🔗 **Passwordless auth** | Uses `DefaultAzureCredential` — no API keys in code |
+| 🤖 **M365 Copilot agent** | Declarative agent + API plugin — generate podcasts from Teams or M365 Chat |
 
 ---
 
@@ -131,6 +132,48 @@ curl https://ca-doctalk-api-m4ydxz.thankfulwave-bd3e8cef.eastus2.azurecontainera
 
 ---
 
+## M365 Copilot Agent (Phase 3)
+
+DocTalk is available as a **declarative agent** inside Microsoft 365 Copilot — no Bot Framework bot, no custom message handlers. Copilot handles NLU, parameter extraction, and Adaptive Card rendering. The agent maps directly to the existing DocTalk REST API via an OpenAPI 3.0.3 plugin spec — no new endpoints required.
+
+> For the full design document, see [COPILOT-AGENT-DESIGN.md](./COPILOT-AGENT-DESIGN.md).
+
+### What's Included
+
+| File | Purpose |
+|------|---------|
+| `appPackage/declarativeAgent.json` | Agent definition — instructions, conversation starters, plugin reference |
+| `appPackage/doctalk-plugin.json` | API plugin — 3 functions with Adaptive Card response templates |
+| `appPackage/openapi.yaml` | OpenAPI 3.0.3 spec mapping to `POST /generate`, `GET /jobs/{id}`, `GET /jobs` |
+| `appPackage/manifest.json` | Teams app manifest (v1.19) with `copilotAgents` capability |
+| `teamsapp.yml` / `teamsapp.local.yml` | Teams Toolkit project configs for provisioning and sideloading |
+
+### Plugin Functions
+
+| Function | Endpoint | Adaptive Card |
+|----------|----------|---------------|
+| `generatePodcast` | `POST /generate` | Queued confirmation with URL, job ID, and status |
+| `getJobStatus` | `GET /jobs/{job_id}` | Status display with conditional play/download link |
+| `listRecentPodcasts` | `GET /jobs` | List of recent podcasts with status and titles |
+
+### Conversation Starters
+
+- *"Generate a podcast about Azure Container Apps"*
+- *"Create a beginner-level episode on Azure Functions"*
+- *"What podcasts have I generated recently?"*
+- *"Check the status of my latest podcast"*
+
+### Setup (Teams Toolkit)
+
+1. Install [Teams Toolkit for VS Code](https://marketplace.visualstudio.com/items?itemName=TeamsDevApp.ms-teams-vscode-extension)
+2. Open the repo in VS Code — Teams Toolkit auto-detects `teamsapp.yml`
+3. Press **F5** to provision and sideload the agent into Teams
+4. Open **M365 Chat** or **Teams** → find **DocTalk** in the agent list
+
+> **Requires:** M365 Copilot license, Entra ID app registration (see `infra/scripts/register-entra-app.sh`)
+
+---
+
 ## Architecture
 
 See [ARCHITECTURE.md](./ARCHITECTURE.md) for the full design document with diagrams.
@@ -142,6 +185,9 @@ Phase 1 (Local):   URL ──▶ Scraper ──▶ Azure OpenAI ──▶ Azure 
 
 Phase 2 (Cloud):   Client ──▶ FastAPI ──▶ Storage Queue ──▶ Worker ──▶ Blob Storage
                               (ACA)                        (ACA + KEDA)
+
+Phase 3 (Copilot): M365 Chat ──▶ Declarative Agent ──▶ API Plugin ──▶ DocTalk REST API
+                                   (NLU + Cards)        (OpenAPI spec)    (Phase 2)
 ```
 
 ### Azure Resources
@@ -166,6 +212,13 @@ Phase 2 (Cloud):   Client ──▶ FastAPI ──▶ Storage Queue ──▶ Wo
 podcast/
 ├── .azure/
 │   └── deployment-plan.md          # Azure deployment plan (source of truth)
+├── appPackage/                     # M365 Copilot agent + API plugin
+│   ├── declarativeAgent.json       # Agent instructions & conversation starters
+│   ├── doctalk-plugin.json         # API plugin with Adaptive Card templates
+│   ├── openapi.yaml                # OpenAPI 3.0.3 spec for plugin runtime
+│   ├── manifest.json               # Teams app manifest (v1.19)
+│   ├── color.png                   # App icon (192×192)
+│   └── outline.png                 # App icon outline (32×32)
 ├── infra/                          # Bicep infrastructure-as-code
 │   ├── main.bicep                  # Subscription-scoped orchestrator
 │   ├── main.parameters.json        # Deployment parameters
@@ -187,7 +240,9 @@ podcast/
 │   │   ├── script_generator.py     # Azure OpenAI script generation
 │   │   └── speech_synthesizer.py   # Azure Speech SSML synthesis
 │   ├── api/
-│   │   └── main.py                 # FastAPI backend (POST /generate, GET /jobs)
+│   │   ├── main.py                 # FastAPI backend (POST /generate, GET /jobs)
+│   │   ├── auth.py                 # Entra ID JWT validation middleware
+│   │   └── blob_utils.py           # User-delegation SAS token generation
 │   ├── worker/
 │   │   └── main.py                 # Queue consumer with KEDA scaling
 │   ├── cli.py                      # Click-based CLI (local + remote modes)
@@ -196,9 +251,12 @@ podcast/
 ├── Dockerfile.api                  # API container image
 ├── Dockerfile.worker               # Worker container image
 ├── azure.yaml                      # Azure Developer CLI configuration
+├── teamsapp.yml                    # Teams Toolkit project config
+├── teamsapp.local.yml              # Teams Toolkit local debug config
 ├── requirements.txt                # Python dependencies
 ├── .dockerignore                   # Build context exclusions
 ├── ARCHITECTURE.md                 # Architecture document with diagrams
+├── COPILOT-AGENT-DESIGN.md         # M365 Copilot agent design document
 ├── ROADMAP.md                      # Project roadmap
 └── README.md                       # This file
 ```
@@ -212,6 +270,7 @@ podcast/
 | **Local development** | `DefaultAzureCredential` | Run `az login` — picks up CLI credentials |
 | **CI/CD** | Service Principal | Set `AZURE_CLIENT_ID`, `AZURE_TENANT_ID`, `AZURE_CLIENT_SECRET` |
 | **Production (Azure-hosted)** | Managed Identity | Assign `ManagedIdentityCredential` — no secrets to manage |
+| **M365 Copilot plugin** | Entra ID SSO (OAuth2) | Copilot handles token acquisition; API validates JWT via JWKS (`src/api/auth.py`) |
 
 > **Security note**: The app uses passwordless authentication via `azure-identity`. No API keys are stored in code. For Speech Service, the app constructs an AAD token using the resource ID.
 
