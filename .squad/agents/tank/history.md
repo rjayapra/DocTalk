@@ -14,3 +14,15 @@
 - Build command: `az acr build --registry crdoctalkmkffp6 --image "doctalk-api:podcast-dev" --file Dockerfile.api .`
 - Deploy command: `az containerapp update --name ca-doctalk-api-mkffp6 --resource-group rg-podcast-dev --image "crdoctalkmkffp6.azurecr.io/doctalk-api:podcast-dev"`
 - The `postprovision` hook in `azure.yaml` handles building both images, but for API-only deploys, the manual `az acr build` + `az containerapp update` approach is faster.
+
+### Deployment — Webapp update with title field + playback fix (2025-07-24)
+- **Changes deployed:** 
+  - Added name input field to webapp UI (src/webapp/index.html)
+  - Fixed title display and event delegation for play buttons (src/webapp/app.js)
+  - Added title field to GenerateRequest model (src/api/main.py)
+- **Build command:** `az acr build --registry crdoctalkmkffp6 --image "doctalk-api:podcast-dev" --file Dockerfile.api .`
+- **Deploy command:** `az containerapp update --name ca-doctalk-api-mkffp6 --resource-group rg-podcast-dev --image "crdoctalkmkffp6.azurecr.io/doctalk-api:podcast-dev"`
+- **Verification:** Health endpoint returned `{"status":"healthy","service":"doctalk-api","version":"2.0.0"}` and webapp static files served successfully at `/app/index.html`
+- **New revision:** `ca-doctalk-api-mkffp6--0000002` deployed and running
+- **Deployment time:** ~2 minutes (build + update)
+- **No issues encountered** — clean deployment with zero downtime

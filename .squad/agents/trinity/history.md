@@ -34,6 +34,17 @@
 - **Production note**: Added comment in module docstring about increasing ACA ingress timeout to 600s via `az containerapp ingress update --timeout 600`.
 - **Key insight**: SSE keep-alive is critical for long-running jobs behind proxies — even with proper ingress timeouts, the connection needs regular heartbeats to stay alive.
 
+### 2025-07-18 — User Delegation SAS Tokens at API Read Time
+- **Problem:** Audio playback broken — storage account has public access disabled, and the pipeline's SAS generation at write time relied on management API env vars (`AZURE_SUBSCRIPTION_ID`, `AZURE_RESOURCE_GROUP`) not set on the worker Container App. Fallback plain blob URLs returned 409.
+- **Solution:** Generate User Delegation SAS tokens in the API layer (`_add_sas_token()`) when serving job responses, not at pipeline write time.
+- **Changes made in `src/api/main.py`:**
+  - Added imports: `BlobServiceClient`, `generate_blob_sas`, `BlobSasPermissions` from `azure.storage.blob`; `timedelta` from `datetime`.
+  - Added `_get_blob_service_client()` helper using existing `credential` (DefaultAzureCredential).
+  - Added `_add_sas_token(audio_url)` — parses blob name from URL, obtains user delegation key, generates 1-hour read SAS.
+  - Updated `_job_to_response()` to wrap `job.audio_url` with `_add_sas_token()`.
+- **Key design points:** SAS tokens are never stored — fresh ones generated per request. Uses User Delegation SAS (no account keys needed). Graceful fallback on failure (returns original URL).
+- **Prereq:** Managed identity needs **Storage Blob Delegator** role on the storage account (included in Storage Blob Data Contributor).
+
 ### 2025-01-10 — Optional Title Field for User-Provided Podcast Names
 - **Purpose:** Enable webapp to pass user-provided podcast names instead of always auto-generating from URL.
 - **Changes made:**

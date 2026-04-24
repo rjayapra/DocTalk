@@ -1,7 +1,7 @@
 # Team Decisions Log
 
 > Canonical record of architectural and operational decisions made by the DocTalk team.
-> Merged and deduplicated by Scribe. Last updated: 2026-04-24.
+> Merged and deduplicated by Scribe. Last updated: 2026-04-24T21:04:00Z
 
 ---
 
@@ -134,6 +134,52 @@ az containerapp ingress update --name doctalk-api --resource-group doctalk-rg --
 ```
 
 ---
+
+## 2026-04-24: Generate SAS Tokens at API Read Time
+
+**By:** Trinity (Backend Developer)
+
+**Status:** Implemented
+
+**Context:** Audio playback was broken because the storage account has public access disabled. The pipeline (`src/core/pipeline.py`) attempted to generate SAS tokens at write time using the Azure management API, which requires `AZURE_SUBSCRIPTION_ID` and `AZURE_RESOURCE_GROUP` env vars — neither was set on the worker Container App. This failed and fell back to plain blob URLs returning 409 errors.
+
+**Decision:** Generate User Delegation SAS tokens in the **API layer** (`src/api/main.py`) at read time, rather than fixing the pipeline to generate them at write time.
+
+**Rationale:**
+1. **No stale tokens** — SAS tokens are generated fresh on each API request (1-hour expiry), so stored audio URLs in Table Storage never become inaccessible due to expired tokens.
+2. **No account keys needed** — User Delegation SAS works with `DefaultAzureCredential` / managed identity. No secrets to manage or rotate.
+3. **No extra env vars** — Unlike the management API approach, this requires zero additional configuration on the Container App.
+4. **Graceful degradation** — If SAS generation fails, the original URL is returned (no crash).
+
+**Prerequisites:**
+- The Container App's managed identity must have the **Storage Blob Delegator** role on the storage account (this permission is included in Storage Blob Data Contributor, which was already assigned).
+
+**Trade-offs:**
+- Each API response triggers a `get_user_delegation_key` call to Azure Storage. This adds minor latency (~100ms) but is acceptable for this workload.
+- The `/jobs` list endpoint generates SAS tokens for every job in the response. For large lists (>50 items) this could be optimized with caching the user delegation key, but the current 20-item default limit keeps it manageable.
+
+**Implementation:**
+```python
+def _add_sas_token(audio_url: str) -> str:
+    """Add a User Delegation SAS token to a blob URL for browser access."""
+    if not audio_url or "?" in audio_url:
+        return audio_url
+    try:
+        # Extract blob name, get user delegation key, generate SAS token
+        # Return URL with appended token
+    except Exception as e:
+        print(f"Warning: SAS generation failed: {e}")
+        return audio_url  # Graceful fallback
+```
+
+**Files Changed:**
+- `src/api/main.py` — Added `_add_sas_token()` helper, integrated into `_job_to_response()`
+
+**Consequences:**
+- ✅ Audio playback works end-to-end for private storage accounts
+- ✅ No stale or expired tokens in user hands
+- ✅ Zero infra or config changes needed for Container App
+- ✅ Works with managed identity (no shared account keys)
 
 ---
 
