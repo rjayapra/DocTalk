@@ -32,3 +32,17 @@ A comprehensive 39-task UI build plan has been created spanning 3 phases. Tank h
 - Client ID and tenant ID are output as env vars (`ENTRA_CLIENT_ID`, `ENTRA_TENANT_ID`) — never hardcoded.
 - The Teams OAuth redirect URI must be exactly `https://teams.microsoft.com/api/platform/v1.0/oAuthRedirect`.
 - `az ad app update --set "api=..."` is the way to configure both token version and scopes in one shot.
+
+### Entra ID Bicep Integration (Task #12 — azd up)
+- Microsoft Graph Bicep (`extension microsoftGraphV1`) is GA and uses `Microsoft.Graph/applications@v1.0`.
+- The `uniqueName` property is required for idempotent Graph resource deployments.
+- `appId` is auto-generated — you cannot set `identifierUris` to `api://{appId}` in the same Bicep resource (circular reference). Must use a postprovision hook.
+- `signInAudience` uses `AzureADMyOrg` (not `AzureADandPersonalMicrosoftAccount`).
+- `newGuid()` works for generating scope IDs in Bicep — only evaluated once per deployment.
+- The `extension microsoftGraphV1` declaration must appear in both the module file AND the parent `main.bicep` when main.bicep is subscription-scoped and the module is resource-group scoped.
+- AZD automatically populates env vars from Bicep outputs, so `ENTRA_APP_ID` output flows to postprovision hooks.
+
+### Key File Paths (Entra Bicep)
+- `infra/modules/entra-app.bicep` — Microsoft Graph Bicep module for Entra app registration
+- `infra/main.bicep` — wires entra-app module, outputs ENTRA_APP_ID and ENTRA_TENANT_ID
+- `azure.yaml` — postprovision hook sets Application ID URI via `az ad app update`
