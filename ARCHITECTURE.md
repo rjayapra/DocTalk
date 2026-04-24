@@ -1,12 +1,12 @@
 # Architecture — DocTalk
 
-> Last updated: 2026-04-22 | Status: Phase 1 Deployed (CLI), Phase 2 Deployed (API + Worker on Azure Container Apps)
+> Last updated: 2025-07-27 | Status: Phase 1 Deployed (CLI), Phase 2 Deployed (API + Worker on Azure Container Apps), Wave 1 (M365 Copilot Agent)
 
 ---
 
 ## 1. Vision Statement
 
-Enable developers and cloud practitioners to consume Azure documentation as podcast-style audio, making it easy to learn on the go — during commutes, workouts, or breaks. Accessible from **CLI**, **Microsoft Teams**, and future channels via a shared API backend.
+Enable developers and cloud practitioners to consume Azure documentation as podcast-style audio, making it easy to learn on the go — during commutes, workouts, or breaks. Accessible from **CLI**, **M365 Copilot** (Teams, Outlook, M365 Chat), and future channels via a shared API backend.
 
 ---
 
@@ -16,7 +16,7 @@ Enable developers and cloud practitioners to consume Azure documentation as podc
 |-------|----------|---------|------------|
 | **Phase 1** | CLI | Local Python | Synchronous |
 | **Phase 2 (Current)** | CLI + API | Azure Container Apps | Async with queue |
-| **Phase 3 (Future)** | + Mobile / Web | ACA + CDN | Async + caching |
+| **Phase 3 (Future)** | + M365 Copilot Agent | ACA + Declarative Agent | Async + caching |
 
 ---
 
@@ -26,7 +26,12 @@ Enable developers and cloud practitioners to consume Azure documentation as podc
 flowchart TB
     subgraph "Clients"
         CLI["🖥️ CLI<br/>(Python)"]
-        TEAMS["💬 Teams Bot<br/>(Bot Framework)"]
+        subgraph "M365 Copilot"
+            USER["👤 User<br/>(Teams / M365 Chat)"]
+            COPILOT["🤖 Copilot Orchestrator"]
+            AGENT["📋 DocTalk Agent<br/>(Declarative Agent v1.3)"]
+            PLUGIN["🔌 API Plugin<br/>(OpenAPI 3.0 spec)"]
+        end
     end
 
     subgraph "Azure Container Apps"
@@ -54,7 +59,10 @@ flowchart TB
     end
 
     CLI -->|POST /generate| API
-    TEAMS -->|Bot message| API
+    USER -->|Natural language| COPILOT
+    COPILOT -->|Routes to| AGENT
+    AGENT -->|Invokes| PLUGIN
+    PLUGIN -->|"POST /generate | GET /jobs/:id | GET /jobs"| API
     API -->|Enqueue job| QUEUE
     API -->|Create job record| TABLE
     QUEUE -->|Dequeue| WORKER
@@ -63,7 +71,9 @@ flowchart TB
     WORKER -->|Upload MP3| BLOB
     WORKER -->|Update status| TABLE
     CLI -->|GET /jobs/id| API
-    TEAMS -.->|Proactive notification| TEAMS
+    PLUGIN -->|Returns Adaptive Card| AGENT
+    AGENT -->|Renders results| COPILOT
+    COPILOT -->|Shows card + audio| USER
     API -->|Read status| TABLE
     API -->|Generate SAS URL| BLOB
     API & WORKER -.->|Auth| KV
@@ -76,7 +86,10 @@ flowchart TB
 
 ```mermaid
 sequenceDiagram
-    participant Client as CLI / Teams
+    participant User as 👤 User (Teams / M365 Chat)
+    participant Copilot as 🤖 M365 Copilot
+    participant Agent as DocTalk Agent
+    participant Plugin as API Plugin
     participant API as DocTalk API
     participant Queue as Storage Queue
     participant Table as Table Storage
@@ -85,12 +98,16 @@ sequenceDiagram
     participant Speech as Azure Speech
     participant Blob as Blob Storage
 
-    Client->>API: POST /generate (url, style)
+    User->>Copilot: "Generate a podcast about Container Apps"
+    Copilot->>Agent: Route to DocTalk agent
+    Agent->>Plugin: Extract params (url, style)
+    Plugin->>API: POST /generate (url, style)
     API->>Table: Create job (id, status: queued)
     API->>Queue: Enqueue (job_id, url, style)
-    API-->>Client: 202 Accepted (job_id, status_url)
-
-    Note over Client: Client polls or waits<br/>for notification
+    API-->>Plugin: 202 Accepted (job_id, status_url)
+    Plugin-->>Agent: Job submitted
+    Agent-->>Copilot: Render queued card
+    Copilot-->>User: Adaptive Card (status: queued)
 
     Queue->>Worker: Dequeue message
     Worker->>Table: Update status: "scraping"
@@ -102,14 +119,14 @@ sequenceDiagram
     Worker->>Blob: Upload MP3
     Worker->>Table: Update status: "completed" + blob_url
 
-    alt CLI Client
-        Client->>API: GET /jobs/id
-        API->>Table: Read job status
-        API-->>Client: status: completed, download_url
-    else Teams Bot
-        Worker->>API: Notify completion
-        API->>Client: Proactive message with audio card
-    end
+    Note over User: User asks "is my podcast ready?"
+    User->>Copilot: "Check on my podcast"
+    Copilot->>Agent: Route to DocTalk agent
+    Plugin->>API: GET /jobs/{id}
+    API->>Table: Read job status
+    API-->>Plugin: status: completed, audio_url
+    Agent-->>Copilot: Render result card
+    Copilot-->>User: Adaptive Card (audio player + download link)
 ```
 
 ---
@@ -198,15 +215,17 @@ queued → scraping → generating_script → synthesizing → uploading → com
 | **Retry** | 3 retries with exponential backoff, dead-letter after failure |
 | **Reuses** | Existing `scraper.py`, `script_generator.py`, `speech_synthesizer.py` |
 
-### 6.3 Teams Bot (`src/bot/`)
+### 6.3 M365 Copilot Agent (`appPackage/`)
 
 | Aspect | Detail |
 |--------|--------|
-| **Framework** | Bot Framework SDK for Python (`botbuilder-core`) |
-| **Hosting** | Same Container App as API (mounted at `/api/messages`) |
-| **UX** | User pastes URL → bot calls API → sends Adaptive Card with audio player when done |
-| **Auth** | Azure Bot Service + Entra app registration |
-| **Notifications** | Proactive messaging via conversation reference stored in Table Storage |
+| **Framework** | Declarative Agent v1.3 + API Plugin v2.2 (NOT Bot Framework) |
+| **Hosting** | No separate hosting — agent definition lives in `appPackage/`, API plugin calls existing FastAPI |
+| **UX** | Copilot handles NLU, parameter extraction, and Adaptive Card rendering; API plugin maps to existing endpoints |
+| **Auth** | Entra ID SSO via OAuthPluginVault (being simplified — may use `none` auth for dev) |
+| **Functions** | `generatePodcast`, `getJobStatus`, `listRecentPodcasts` — maps to existing REST API |
+| **Files** | `manifest.json`, `declarativeAgent.json`, `doctalk-plugin.json`, `openapi.yaml` |
+| **Dev workflow** | Teams Toolkit for local dev, sideloading, and publish |
 
 ### 6.4 CLI (Updated — `src/cli.py`)
 
@@ -226,7 +245,7 @@ queued → scraping → generating_script → synthesizing → uploading → com
 graph TB
     subgraph "Resource Group: rg-doctalk-dev"
         subgraph "Compute"
-            ACA_API["Container Apps<br/>doctalk-api<br/>(FastAPI + Bot)"]
+            ACA_API["Container Apps<br/>doctalk-api<br/>(FastAPI)"]
             ACA_WORKER["Container Apps<br/>doctalk-worker<br/>(Queue processor)"]
             ACR["Container Registry<br/>crdoctalk*<br/>Basic"]
         end
@@ -240,8 +259,8 @@ graph TB
             STO["Blob Storage<br/>stdoctalk*<br/>(podcasts + queues + tables)"]
         end
 
-        subgraph "Bot"
-            BOT["Azure Bot Service<br/>bot-doctalk-*<br/>F0 (Free)"]
+        subgraph "Identity"
+            ENTRA["Entra ID App<br/>(OAuth for Copilot plugin)"]
         end
 
         subgraph "Operations"
@@ -258,7 +277,7 @@ graph TB
     ACA_WORKER -->|Dequeue| STO
     ACA_WORKER --> OAI & SPE
     ACA_WORKER -->|Upload MP3| STO
-    BOT -->|Messages| ACA_API
+    ENTRA -.->|OAuth token validation| ACA_API
     ACA_API & ACA_WORKER -->|Secrets| KV
     ACA_API & ACA_WORKER -->|Logs| LOG
 ```
@@ -268,48 +287,68 @@ graph TB
 | Resource | Service | SKU | Purpose | Est. Cost |
 |----------|---------|-----|---------|-----------|
 | Container Apps Env | `Microsoft.App/managedEnvironments` | Consumption | Serverless container hosting | ~$0 (scale to zero) |
-| API Container | `Microsoft.App/containerApps` | Consumption | FastAPI + Bot endpoint | ~$2–5/mo |
+| API Container | `Microsoft.App/containerApps` | Consumption | FastAPI endpoint | ~$2–5/mo |
 | Worker Container | `Microsoft.App/containerApps` | Consumption | Queue-triggered processor | ~$1–3/mo |
 | Container Registry | `Microsoft.ContainerRegistry/registries` | Basic | Docker image storage | ~$5/mo |
-| Azure Bot Service | `Microsoft.BotService/botServices` | F0 | Teams channel integration | Free |
+| Entra ID App | `Microsoft.Graph/applications` | Free | OAuth for Copilot API plugin | Free |
 | **Phase 2 Additional** | | | | **~$8–13/mo** |
 | **Total (Phase 1 + 2)** | | | | **~$18–38/mo** |
 
 ---
 
-## 8. Teams Bot User Experience
+## 8. M365 Copilot Agent User Experience
+
+### Conversation Starters
+
+When a user opens DocTalk in M365 Copilot, they see these suggested prompts:
+
+- "Generate a podcast about Azure Container Apps"
+- "Create a beginner-level episode on Azure Functions"
+- "What podcasts have I generated recently?"
+- "Check the status of my latest podcast"
+
+### Interaction Flow
 
 ```
 ┌─────────────────────────────────────────────┐
-│ 💬 Microsoft Teams                          │
+│ 🤖 M365 Copilot (Teams / M365 Chat)        │
 ├─────────────────────────────────────────────┤
 │                                             │
 │  You:                                       │
 │  ┌─────────────────────────────────────┐    │
-│  │ https://learn.microsoft.com/azure/  │    │
-│  │ container-apps/overview             │    │
+│  │ Generate a podcast about Azure      │    │
+│  │ Container Apps                      │    │
 │  └─────────────────────────────────────┘    │
 │                                             │
-│  DocTalk Bot:                               │
+│  DocTalk (via Copilot):                     │
 │  ┌─────────────────────────────────────┐    │
-│  │ 🎙️ Generating podcast...           │    │
-│  │ Style: Two-host conversation        │    │
-│  │ ⏳ Estimated wait: ~90 seconds      │    │
+│  │ 🎙️ Podcast Queued                  │    │
+│  │                                     │    │
+│  │ URL: https://learn.microsoft.com/   │    │
+│  │      azure/container-apps/overview  │    │
+│  │ Job ID: a1b2c3d4-...               │    │
+│  │ Status: queued                      │    │
+│  └─────────────────────── Adaptive Card┘    │
+│                                             │
+│  You:                                       │
+│  ┌─────────────────────────────────────┐    │
+│  │ Check on my podcast                 │    │
 │  └─────────────────────────────────────┘    │
 │                                             │
-│  DocTalk Bot:                               │
+│  DocTalk (via Copilot):                     │
 │  ┌─────────────────────────────────────┐    │
-│  │ ✅ Your podcast is ready!           │    │
+│  │ 🎙️ Azure Container Apps Overview   │    │
 │  │                                     │    │
-│  │ 📄 Azure Container Apps Overview    │    │
-│  │ ⏱️ Duration: 5:12                   │    │
-│  │ 🎭 Style: Conversation (Alex & Sam)│    │
+│  │ Status: completed                   │    │
+│  │ Style: conversation                 │    │
 │  │                                     │    │
-│  │ [▶️ Play] [⬇️ Download] [📋 Script]│    │
-│  └─────────────────────────────────────┘    │
+│  │ [▶️ Play / Download Podcast]        │    │
+│  └─────────────────── Adaptive Card    ┘    │
 │                                             │
 └─────────────────────────────────────────────┘
 ```
+
+> **Note:** Copilot handles NLU (natural language understanding), parameter extraction, and response rendering. The API plugin defines Adaptive Card templates that Copilot uses to display structured results.
 
 ---
 
@@ -413,7 +452,7 @@ Where `uniqueHash6 = take(uniqueString(subscription().id, environmentName, locat
 | **Soft delete** | Key Vault (7-day) | Unchanged |
 | **Diagnostic logging** | All resources → Log Analytics | + Container Apps system/console logs |
 | **Network isolation** | User's local machine | Container Apps VNet (optional) |
-| **Bot auth** | N/A | Entra ID app registration + Bot Framework auth |
+| **Copilot agent auth** | N/A | Entra ID SSO via OAuthPluginVault (OAuth 2.0 authorization code flow) |
 
 ---
 
@@ -429,14 +468,14 @@ Where `uniqueHash6 = take(uniqueString(subscription().id, environmentName, locat
 | Key Vault + Log Analytics | <$2 | Minimal usage |
 | **Phase 1 Total** | **~$10–25** | |
 
-### Phase 2 — API + Teams Bot
+### Phase 2 — API + M365 Copilot Agent
 
 | Resource | Est. Cost | Assumptions |
 |----------|-----------|-------------|
 | Container Apps (API) | ~$2–5 | Scale-to-zero, ~100 requests/mo |
 | Container Apps (Worker) | ~$1–3 | Scale-to-zero, ~50 jobs/mo |
 | Container Registry (Basic) | ~$5 | Image storage |
-| Azure Bot Service | Free (F0) | Teams channel |
+| Entra ID App Registration | Free | OAuth for Copilot API plugin |
 | Storage Queues + Tables | <$1 | Job management |
 | **Phase 2 Additional** | **~$8–13** | |
 | **Combined Total** | **~$18–38** | |
@@ -465,7 +504,7 @@ Where `uniqueHash6 = take(uniqueString(subscription().id, environmentName, locat
 | Compute | Container Apps | Functions, App Service | Scale-to-zero, queue triggers, no VM management |
 | Job queue | Storage Queue | Service Bus | Simpler, cheaper, sufficient for small team scale |
 | Job state | Table Storage | Cosmos DB, SQL | Cheap, serverless, key-value is enough |
-| Bot framework | Bot Framework SDK | Power Virtual Agents | Full control, free tier, Python SDK |
+| Copilot integration | Declarative Agent + API Plugin | Bot Framework SDK | Zero backend code — Copilot handles NLU/rendering, API plugin maps to existing REST API |
 | Container registry | ACR Basic | Docker Hub | Azure-native, private, Managed Identity pull |
 | LLM | Azure OpenAI GPT-5.1 | GPT-4.1, Claude | Best Azure integration, managed, passwordless |
 | TTS | Azure Speech Neural | ElevenLabs | Native Azure, SSML multi-voice, chat style |
