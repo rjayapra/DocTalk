@@ -338,7 +338,7 @@ info:
   version: 2.1.0
   description: Podcast generation from Azure documentation
 servers:
-  - url: https://ca-doctalk-api-mkffp6.wittyfield-14310482.eastus2.azurecontainerapps.io
+  - url: https://ca-doctalk-api-m4ydxz.thankfulwave-bd3e8cef.eastus2.azurecontainerapps.io
 paths:
   /generate:
     post:

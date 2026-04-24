@@ -35,7 +35,7 @@
 
 | Resource | URL |
 |----------|-----|
-| **API** | `https://ca-doctalk-api-mkffp6.wittyfield-14310482.eastus2.azurecontainerapps.io` |
+| **API** | `https://ca-doctalk-api-m4ydxz.thankfulwave-bd3e8cef.eastus2.azurecontainerapps.io` |
 | **Audio files** | `https://stpodcastmkffp6.blob.core.windows.net/podcasts/{job_id}.mp3` |
 
 ### Architecture Summary

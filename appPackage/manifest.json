@@ -31,7 +31,7 @@
     ]
   },
   "validDomains": [
-    "ca-doctalk-api-mkffp6.wittyfield-14310482.eastus2.azurecontainerapps.io"
+    "ca-doctalk-api-m4ydxz.thankfulwave-bd3e8cef.eastus2.azurecontainerapps.io"
   ],
   "webApplicationInfo": {
     "id": "${{ENTRA_APP_ID}}",
