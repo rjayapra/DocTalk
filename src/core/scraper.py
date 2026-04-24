@@ -1,15 +1,25 @@
-"""Scrape and extract clean text content from Azure documentation pages."""
+"""Scrape and extract clean text content from documentation pages."""
 
 import re
 import requests
 from bs4 import BeautifulSoup
 
+_GITHUB_BLOB_RE = re.compile(
+    r"https://github\.com/([^/]+)/([^/]+)/blob/(.+)"
+)
+
 
 def fetch_docs(url: str) -> dict:
-    """Fetch an Azure docs page and extract structured content.
+    """Fetch a docs page and extract structured content.
 
+    Supports Microsoft Learn/Docs pages and GitHub blob URLs.
     Returns dict with 'title', 'description', and 'content' keys.
     """
+    # Convert GitHub blob URLs to raw content URLs
+    github_match = _GITHUB_BLOB_RE.match(url)
+    if github_match:
+        return _fetch_github_raw(url, github_match)
+
     headers = {
         "User-Agent": "Mozilla/5.0 (compatible; AzurePodcastGenerator/1.0)"
     }
@@ -27,6 +37,34 @@ def fetch_docs(url: str) -> dict:
         "description": description,
         "content": content,
         "url": url,
+    }
+
+
+def _fetch_github_raw(original_url: str, match: re.Match) -> dict:
+    """Fetch raw content from a GitHub blob URL."""
+    owner, repo, path = match.group(1), match.group(2), match.group(3)
+    raw_url = f"https://raw.githubusercontent.com/{owner}/{repo}/{path}"
+
+    headers = {
+        "User-Agent": "Mozilla/5.0 (compatible; AzurePodcastGenerator/1.0)"
+    }
+    response = requests.get(raw_url, headers=headers, timeout=30)
+    response.raise_for_status()
+
+    raw_text = response.text
+    # Derive a title from the filename
+    filename = path.split("/")[-1]
+    title = filename.rsplit(".", 1)[0].replace("-", " ").replace("_", " ").title()
+
+    # Truncate to stay within model context limits
+    if len(raw_text) > 12000:
+        raw_text = raw_text[:12000] + "\n\n[Content truncated for podcast generation...]"
+
+    return {
+        "title": title,
+        "description": f"Content from {owner}/{repo}",
+        "content": raw_text,
+        "url": original_url,
     }
 
 
