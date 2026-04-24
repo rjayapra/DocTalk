@@ -1,4 +1,5 @@
-FROM python:3.11-slim
+ARG BASE_REGISTRY=
+FROM ${BASE_REGISTRY}python:3.11-slim
 
 # Install system deps for Azure Speech SDK
 RUN apt-get update && apt-get install -y --no-install-recommends \

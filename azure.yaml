@@ -27,6 +27,9 @@ hooks:
       else
         echo "ENTRA_APP_ID not set — skipping Application ID URI configuration"
       fi
+      echo "Importing Python base image into ACR (avoids Docker Hub rate limits)..."
+      az acr import --name "$AZURE_CONTAINER_REGISTRY_NAME" --source docker.io/library/python:3.11-slim --image python:3.11-slim --force 2>/dev/null || echo "Base image import skipped (may already exist)"
+      ACR_LOGIN_SERVER=$(az acr show --name "$AZURE_CONTAINER_REGISTRY_NAME" --query loginServer -o tsv)
       echo "Building images with az acr build (no local Docker needed)..."
-      az acr build --registry "$AZURE_CONTAINER_REGISTRY_NAME" --image "doctalk-api:$AZURE_ENV_NAME" --file Dockerfile.api .
-      az acr build --registry "$AZURE_CONTAINER_REGISTRY_NAME" --image "doctalk-worker:$AZURE_ENV_NAME" --file Dockerfile.worker .
+      az acr build --registry "$AZURE_CONTAINER_REGISTRY_NAME" --image "doctalk-api:$AZURE_ENV_NAME" --file Dockerfile.api --build-arg "BASE_REGISTRY=${ACR_LOGIN_SERVER}/" .
+      az acr build --registry "$AZURE_CONTAINER_REGISTRY_NAME" --image "doctalk-worker:$AZURE_ENV_NAME" --file Dockerfile.worker --build-arg "BASE_REGISTRY=${ACR_LOGIN_SERVER}/" .
